@@ -89,6 +89,24 @@
             b = Math.max(value, a + 0.5);
         }
     }
+
+    // Bulk actions
+    $: allCosActive = coefsActivity.ak.slice(0, maxK).every((v) => v);
+    $: allCosInactive = coefsActivity.ak.slice(0, maxK).every((v) => !v);
+    $: allSinActive = coefsActivity.bk.slice(0, maxK).every((v) => v);
+    $: allSinInactive = coefsActivity.bk.slice(0, maxK).every((v) => !v);
+
+    function setAllCoefs(type, active) {
+        if (type === "cos") {
+            coefsActivity.ak = coefsActivity.ak.map((v, i) =>
+                i < maxK ? active : v,
+            );
+        } else {
+            coefsActivity.bk = coefsActivity.bk.map((v, i) =>
+                i < maxK ? active : v,
+            );
+        }
+    }
 </script>
 
 <main>
@@ -224,6 +242,22 @@
                             </label>
                         {/each}
                     </div>
+                    <div class="bulk-actions">
+                        <button
+                            class="text-btn"
+                            disabled={allCosActive}
+                            on:click={() => setAllCoefs("cos", true)}
+                        >
+                            Tout activer
+                        </button>
+                        <button
+                            class="text-btn"
+                            disabled={allCosInactive}
+                            on:click={() => setAllCoefs("cos", false)}
+                        >
+                            Tout désactiver
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -254,6 +288,22 @@
                                 <span class="coef-value">{c.toFixed(3)}</span>
                             </label>
                         {/each}
+                    </div>
+                    <div class="bulk-actions">
+                        <button
+                            class="text-btn"
+                            disabled={allSinActive}
+                            on:click={() => setAllCoefs("sin", true)}
+                        >
+                            Tout activer
+                        </button>
+                        <button
+                            class="text-btn"
+                            disabled={allSinInactive}
+                            on:click={() => setAllCoefs("sin", false)}
+                        >
+                            Tout désactiver
+                        </button>
                     </div>
                 </div>
             </div>
@@ -379,6 +429,39 @@
 
     button:hover {
         background: #dc2626;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .bulk-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .text-btn {
+        background: none;
+        color: #2563eb;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        margin: 0;
+        border: 1px solid #bfdbfe;
+        background-color: #eff6ff;
+    }
+
+    .text-btn:hover {
+        background-color: #dbeafe;
+    }
+
+    .text-btn:disabled {
+        color: #94a3b8;
+        border-color: #e2e8f0;
+        background-color: #f8fafc;
     }
 
     .drawing-section p {
