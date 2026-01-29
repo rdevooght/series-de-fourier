@@ -103,6 +103,7 @@
                 .attr("fill", "none")
                 .attr("stroke", l.color || "#2563eb")
                 .attr("stroke-width", l.width || 2)
+                .attr("stroke-dasharray", l.dashed ? "2,2" : null)
                 .attr("d", line);
         }
     }

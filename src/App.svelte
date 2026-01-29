@@ -11,12 +11,17 @@
     let a = 2;
     let b = 8;
 
-    // Number of Fourier terms
-    let maxK = 5;
+    let maxK = 5; // Number of Fourier terms
+    let maxMaxK = 20; // Maximum number of Fourier terms
 
     // Drawn points and computed coefficients
     let drawnPoints = [];
     let coefs = null;
+    let coefsActivity = {
+        a0: true,
+        ak: Array(maxMaxK).fill(true),
+        bk: Array(maxMaxK).fill(true),
+    };
 
     // Reference to canvas for clearing
     let canvasRef;
@@ -35,46 +40,46 @@
     }
 
     // Generate Fourier approximation samples
+    function getActiveCoefs(coefs, coefsActivity) {
+        return {
+            a0: coefsActivity.a0 ? coefs.a0 : 0,
+            ak: coefs.ak.map((val, i) => (coefsActivity.ak[i] ? val : 0)),
+            bk: coefs.bk.map((val, i) => (coefsActivity.bk[i] ? val : 0)),
+            domain: [a, b],
+        };
+    }
     $: approxPoints = coefs
-        ? sampleFunction(fourierApprox(coefs), 0, 10, 300)
+        ? sampleFunction(
+              fourierApprox(getActiveCoefs(coefs, coefsActivity)),
+              0,
+              10,
+              300,
+          )
         : [];
 
     // Generate individual term samples
-    $: cosTerms = coefs
-        ? coefs.ak.map((c, i) => ({
-              points: sampleFunction(
-                  (x) =>
-                      c * Math.cos((2 * (i + 1) * Math.PI * (x - a)) / (b - a)),
-                  0,
-                  10,
-                  200,
-              ),
-              color: `hsl(${(i * 360) / maxK}, 70%, 50%)`,
-              label: `a${i + 1}`,
-          }))
-        : [];
-
-    $: sinTerms = coefs
-        ? coefs.bk.map((c, i) => ({
-              points: sampleFunction(
-                  (x) =>
-                      c * Math.sin((2 * (i + 1) * Math.PI * (x - a)) / (b - a)),
-                  0,
-                  10,
-                  200,
-              ),
-              color: `hsl(${(i * 360) / maxK + 180}, 70%, 50%)`,
-              label: `b${i + 1}`,
-          }))
-        : [];
+    function getTermsFunctions(type, coefs, coefsActivity) {
+        return coefs.map((c, i) => ({
+            points: sampleFunction(
+                (x) =>
+                    c * Math[type]((2 * (i + 1) * Math.PI * (x - a)) / (b - a)),
+                0,
+                10,
+                200,
+            ),
+            color: `hsl(${(i * 360) / maxK}, 70%, 50%)`,
+            label: `${type === "cos" ? "a" : "b"}${i + 1}`,
+            dashed: !coefsActivity[i],
+        }));
+    }
 
     // Y domain for plots
     $: yRange = coefs
         ? [
-              Math.min(-1, ...approxPoints.map((p) => p[1])) - 0.5,
-              Math.max(10, ...approxPoints.map((p) => p[1])) + 0.5,
+              Math.min(0, ...approxPoints.map((p) => p[1] - 0.5)),
+              Math.max(10, ...approxPoints.map((p) => p[1] + 0.5)),
           ]
-        : [-1, 10];
+        : [0, 10];
 
     function clearCanvas() {
         drawnPoints = [];
@@ -131,7 +136,7 @@
                     type="range"
                     bind:value={maxK}
                     min="1"
-                    max="20"
+                    max={maxMaxK}
                     step="1"
                 />
                 <span class="value">{maxK}</span>
@@ -154,38 +159,32 @@
     </section>
 
     {#if coefs}
-        <section class="results">
-            <h2>Coefficients de Fourier</h2>
-            <div class="coefs-display">
-                <div class="coef">
-                    <span class="coef-name">a₀ / 2</span>
-                    <span class="coef-value">{(coefs.a0 / 2).toFixed(3)}</span>
-                </div>
-                {#each coefs.ak as c, i}
-                    <div class="coef">
-                        <span class="coef-name">a{i + 1}</span>
-                        <span class="coef-value">{c.toFixed(3)}</span>
-                    </div>
-                {/each}
-                {#each coefs.bk as c, i}
-                    <div class="coef">
-                        <span class="coef-name">b{i + 1}</span>
-                        <span class="coef-value">{c.toFixed(3)}</span>
-                    </div>
-                {/each}
-            </div>
-        </section>
-
         <section class="plots">
             <h2>Approximation de Fourier</h2>
             <FunctionPlot
                 width={600}
-                height={280}
+                height={350}
                 xDomain={[0, 10]}
                 yDomain={yRange}
                 lines={[{ points: approxPoints, color: "#2563eb", width: 2 }]}
                 title="f(x) ≈ a₀/2 + Σ(aₖcos + bₖsin)"
             />
+
+            <h2>Terme constant</h2>
+            <div class="results">
+                <div class="coefs-display">
+                    <label class={["coef", coefsActivity.a0 && "active"]}>
+                        <input
+                            type="checkbox"
+                            bind:checked={coefsActivity.a0}
+                        />
+                        <span class="coef-name">a0 / 2</span>
+                        <span class="coef-value"
+                            >{(coefs.a0 / 2).toFixed(3)}</span
+                        >
+                    </label>
+                </div>
+            </div>
 
             <h2>Termes cosinus</h2>
             <FunctionPlot
@@ -193,9 +192,26 @@
                 height={220}
                 xDomain={[0, 10]}
                 yDomain={[-2, 2]}
-                lines={cosTerms}
+                lines={getTermsFunctions("cos", coefs.ak, coefsActivity.ak)}
                 title="aₖ · cos(2kπ(x-a)/(b-a))"
             />
+
+            <div class="results">
+                <div class="coefs-display">
+                    {#each coefs.ak as c, i}
+                        <label
+                            class={["coef", coefsActivity.ak[i] && "active"]}
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={coefsActivity.ak[i]}
+                            />
+                            <span class="coef-name">a{i + 1}</span>
+                            <span class="coef-value">{c.toFixed(3)}</span>
+                        </label>
+                    {/each}
+                </div>
+            </div>
 
             <h2>Termes sinus</h2>
             <FunctionPlot
@@ -203,9 +219,26 @@
                 height={220}
                 xDomain={[0, 10]}
                 yDomain={[-2, 2]}
-                lines={sinTerms}
+                lines={getTermsFunctions("sin", coefs.bk, coefsActivity.bk)}
                 title="bₖ · sin(2kπ(x-a)/(b-a))"
             />
+
+            <div class="results">
+                <div class="coefs-display">
+                    {#each coefs.bk as c, i}
+                        <label
+                            class={["coef", coefsActivity.bk[i] && "active"]}
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={coefsActivity.bk[i]}
+                            />
+                            <span class="coef-name">b{i + 1}</span>
+                            <span class="coef-value">{c.toFixed(3)}</span>
+                        </label>
+                    {/each}
+                </div>
+            </div>
         </section>
     {:else}
         <p class="hint">
@@ -331,6 +364,10 @@
         display: flex;
         gap: 0.5rem;
         font-size: 0.85rem;
+    }
+
+    .coef.active {
+        background: #e5e7eb;
     }
 
     .coef-name {
