@@ -2,7 +2,6 @@
     import { onMount, createEventDispatcher } from "svelte";
     import * as d3 from "d3";
 
-    export let width = 600;
     export let height = 400;
     export let xDomain = [0, 10];
     export let yDomain = [0, 10];
@@ -11,7 +10,7 @@
     const dispatch = createEventDispatcher();
     const margin = { top: 30, right: 30, bottom: 40, left: 50 };
 
-    let container;
+    let width;
     let canvas;
     let svg;
     let points = [];
@@ -214,8 +213,8 @@
 
 <div
     class="drawing-container"
-    bind:this={container}
-    style="width:{width}px;height:{height}px;"
+    bind:clientWidth={width}
+    style="height:{height}px;"
 >
     <canvas bind:this={canvas} {width} {height}></canvas>
     <svg bind:this={svg} {width} {height}></svg>
@@ -223,6 +222,7 @@
 
 <style>
     .drawing-container {
+        width: 100%;
         position: relative;
         border: 1px solid #e5e7eb;
         border-radius: 8px;

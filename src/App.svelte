@@ -73,14 +73,6 @@
         }));
     }
 
-    // Y domain for plots
-    $: yRange = coefs
-        ? [
-              Math.min(0, ...approxPoints.map((p) => p[1] - 0.5)),
-              Math.max(10, ...approxPoints.map((p) => p[1] + 0.5)),
-          ]
-        : [0, 10];
-
     function clearCanvas() {
         drawnPoints = [];
         coefs = null;
@@ -100,80 +92,90 @@
 </script>
 
 <main>
-    <h1>Séries de Fourier</h1>
-    <p class="subtitle">
-        Dessinez une fonction et visualisez son approximation par série de
-        Fourier
-    </p>
+    <div class="centered-column">
+        <h1>Séries de Fourier</h1>
+        <p class="subtitle">
+            Dessinez une fonction et visualisez son approximation par série de
+            Fourier
+        </p>
 
-    <section class="controls">
-        <div class="control-group">
-            <label>
-                <span>Domaine: a = </span>
-                <input
-                    type="number"
-                    bind:value={a}
-                    min="0"
-                    max={b - 1}
-                    step="0.5"
-                />
-            </label>
-            <label>
-                <span>b = </span>
-                <input
-                    type="number"
-                    bind:value={b}
-                    min={a + 1}
-                    max="10"
-                    step="0.5"
-                />
-            </label>
-        </div>
-        <div class="control-group">
-            <label>
-                <span>Nombre de termes (k): </span>
-                <input
-                    type="range"
-                    bind:value={maxK}
-                    min="1"
-                    max={maxMaxK}
-                    step="1"
-                />
-                <span class="value">{maxK}</span>
-            </label>
-        </div>
-        <button on:click={clearCanvas}>Effacer</button>
-    </section>
+        <section class="controls">
+            <div class="control-group">
+                <label>
+                    <span>Domaine: a = </span>
+                    <input
+                        type="number"
+                        bind:value={a}
+                        min="0"
+                        max={b - 1}
+                        step="0.5"
+                    />
+                </label>
+                <label>
+                    <span>b = </span>
+                    <input
+                        type="number"
+                        bind:value={b}
+                        min={a + 1}
+                        max="10"
+                        step="0.5"
+                    />
+                </label>
+            </div>
+            <div class="control-group">
+                <label>
+                    <span>Nombre de termes (k): </span>
+                    <input
+                        type="range"
+                        bind:value={maxK}
+                        min="1"
+                        max={maxMaxK}
+                        step="1"
+                    />
+                    <span class="value">{maxK}</span>
+                </label>
+            </div>
+        </section>
 
-    <section class="drawing-section">
-        <h2>Dessinez votre fonction</h2>
-        <p>Tracez entre les lignes rouges (a = {a} et b = {b})</p>
-        <DrawingCanvas
-            bind:this={canvasRef}
-            width={600}
-            height={350}
-            domainMarks={[a, b]}
-            on:draw={handleDraw}
-            on:domainChange={handleDomainChange}
-        />
-    </section>
+        <section class="drawing-section">
+            <div class="control-group">
+                <div>
+                    <h2>Dessinez votre fonction</h2>
+                    <p>Tracez entre les lignes rouges (a = {a} et b = {b})</p>
+                </div>
+                {#if drawnPoints.length > 1}
+                    <button on:click={clearCanvas}>Effacer</button>
+                {/if}
+            </div>
 
-    {#if coefs}
-        <section class="plots">
-            <h2>Approximation de Fourier</h2>
-            <FunctionPlot
-                width={600}
+            <DrawingCanvas
+                bind:this={canvasRef}
                 height={350}
-                xDomain={[0, 10]}
-                yDomain={yRange}
-                lines={[{ points: approxPoints, color: "#2563eb", width: 2 }]}
-                title="f(x) ≈ a₀/2 + Σ(aₖcos + bₖsin)"
+                domainMarks={[a, b]}
+                on:draw={handleDraw}
+                on:domainChange={handleDomainChange}
             />
+        </section>
 
-            <h2>Terme constant</h2>
-            <div class="results">
-                <div class="coefs-display">
-                    <label class={["coef", coefsActivity.a0 && "active"]}>
+        {#if coefs}
+            <section class="plots">
+                <h2>Approximation de Fourier</h2>
+                <FunctionPlot
+                    height={350}
+                    xDomain={[0, 10]}
+                    yDomain={[0, 10]}
+                    lines={[
+                        { points: approxPoints, color: "#2563eb", width: 2 },
+                    ]}
+                    title="f(x) ≈ a₀/2 + Σ(aₖcos + bₖsin)"
+                />
+
+                <div class="coef-constant">
+                    <span class="title">Terme constant:</span>
+                    <label
+                        style="display: inline"
+                        class={["coef", coefsActivity.a0 && "active"]}
+                    >
                         <input
                             type="checkbox"
                             bind:checked={coefsActivity.a0}
@@ -184,66 +186,78 @@
                         >
                     </label>
                 </div>
-            </div>
+            </section>
+        {:else}
+            <p class="hint">
+                👆 Dessinez une courbe ci-dessus pour voir les résultats
+            </p>
+        {/if}
+    </div>
 
-            <h2>Termes cosinus</h2>
-            <FunctionPlot
-                width={600}
-                height={220}
-                xDomain={[0, 10]}
-                yDomain={[-2, 2]}
-                lines={getTermsFunctions("cos", coefs.ak, coefsActivity.ak)}
-                title="aₖ · cos(2kπ(x-a)/(b-a))"
-            />
+    {#if coefs}
+        <div class="terms-container">
+            <div class="term-group">
+                <h2>Termes cosinus</h2>
+                <FunctionPlot
+                    height={220}
+                    xDomain={[0, 10]}
+                    yDomain={[-2, 2]}
+                    lines={getTermsFunctions("cos", coefs.ak, coefsActivity.ak)}
+                    title="aₖ · cos(2kπ(x-a)/(b-a))"
+                />
 
-            <div class="results">
-                <div class="coefs-display">
-                    {#each coefs.ak as c, i}
-                        <label
-                            class={["coef", coefsActivity.ak[i] && "active"]}
-                        >
-                            <input
-                                type="checkbox"
-                                bind:checked={coefsActivity.ak[i]}
-                            />
-                            <span class="coef-name">a{i + 1}</span>
-                            <span class="coef-value">{c.toFixed(3)}</span>
-                        </label>
-                    {/each}
+                <div class="results">
+                    <div class="coefs-display">
+                        {#each coefs.ak as c, i}
+                            <label
+                                class={[
+                                    "coef",
+                                    coefsActivity.ak[i] && "active",
+                                ]}
+                            >
+                                <input
+                                    type="checkbox"
+                                    bind:checked={coefsActivity.ak[i]}
+                                />
+                                <span class="coef-name">a{i + 1}</span>
+                                <span class="coef-value">{c.toFixed(3)}</span>
+                            </label>
+                        {/each}
+                    </div>
                 </div>
             </div>
 
-            <h2>Termes sinus</h2>
-            <FunctionPlot
-                width={600}
-                height={220}
-                xDomain={[0, 10]}
-                yDomain={[-2, 2]}
-                lines={getTermsFunctions("sin", coefs.bk, coefsActivity.bk)}
-                title="bₖ · sin(2kπ(x-a)/(b-a))"
-            />
+            <div class="term-group">
+                <h2>Termes sinus</h2>
+                <FunctionPlot
+                    height={220}
+                    xDomain={[0, 10]}
+                    yDomain={[-2, 2]}
+                    lines={getTermsFunctions("sin", coefs.bk, coefsActivity.bk)}
+                    title="bₖ · sin(2kπ(x-a)/(b-a))"
+                />
 
-            <div class="results">
-                <div class="coefs-display">
-                    {#each coefs.bk as c, i}
-                        <label
-                            class={["coef", coefsActivity.bk[i] && "active"]}
-                        >
-                            <input
-                                type="checkbox"
-                                bind:checked={coefsActivity.bk[i]}
-                            />
-                            <span class="coef-name">b{i + 1}</span>
-                            <span class="coef-value">{c.toFixed(3)}</span>
-                        </label>
-                    {/each}
+                <div class="results">
+                    <div class="coefs-display">
+                        {#each coefs.bk as c, i}
+                            <label
+                                class={[
+                                    "coef",
+                                    coefsActivity.bk[i] && "active",
+                                ]}
+                            >
+                                <input
+                                    type="checkbox"
+                                    bind:checked={coefsActivity.bk[i]}
+                                />
+                                <span class="coef-name">b{i + 1}</span>
+                                <span class="coef-value">{c.toFixed(3)}</span>
+                            </label>
+                        {/each}
+                    </div>
                 </div>
             </div>
-        </section>
-    {:else}
-        <p class="hint">
-            👆 Dessinez une courbe ci-dessus pour voir les résultats
-        </p>
+        </div>
     {/if}
 </main>
 
@@ -259,6 +273,36 @@
         max-width: 700px;
         margin: 0 auto;
         padding: 2rem;
+    }
+
+    /* Column for top elements */
+    .centered-column {
+        max-width: 700px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    /* Layout for terms container */
+    .terms-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+        /* When screen is large, allow main to expand for the terms container */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .terms-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
     }
 
     h1 {
@@ -391,5 +435,13 @@
         color: #94a3b8;
         font-size: 1.1rem;
         margin-top: 3rem;
+    }
+
+    .coef-constant {
+        margin: 1.5rem 0 0.75rem;
+    }
+    .coef-constant .title {
+        color: #334155;
+        font-size: 1.1rem;
     }
 </style>

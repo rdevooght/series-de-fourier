@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import * as d3 from "d3";
 
-    export let width = 600;
+    let width;
     export let height = 250;
     export let xDomain = [0, 10];
     export let yDomain = [-2, 8];
@@ -18,10 +18,13 @@
         const svgEl = d3.select(svg);
         svgEl.selectAll("*").remove();
 
+        // Use plotWidth instead of width
+        const w = width;
+
         const xScale = d3
             .scaleLinear()
             .domain(xDomain)
-            .range([margin.left, width - margin.right]);
+            .range([margin.left, w - margin.right]);
 
         const yScale = d3
             .scaleLinear()
@@ -32,7 +35,7 @@
         if (title) {
             svgEl
                 .append("text")
-                .attr("x", width / 2)
+                .attr("x", w / 2)
                 .attr("y", 16)
                 .attr("text-anchor", "middle")
                 .attr("font-size", "14px")
@@ -74,7 +77,7 @@
             .call(
                 d3
                     .axisLeft(yScale)
-                    .tickSize(-width + margin.left + margin.right)
+                    .tickSize(-w + margin.left + margin.right)
                     .tickFormat(""),
             );
 
@@ -110,14 +113,17 @@
 
     onMount(draw);
     $: if (svg) (draw(), lines, xDomain, yDomain);
+
+    $: console.log(width);
 </script>
 
-<div class="plot-container">
+<div class="plot-container" bind:clientWidth={width}>
     <svg bind:this={svg} {width} {height}></svg>
 </div>
 
 <style>
     .plot-container {
+        width: 100%;
         border: 1px solid #e5e7eb;
         border-radius: 8px;
         overflow: hidden;
