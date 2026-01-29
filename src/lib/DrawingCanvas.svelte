@@ -78,6 +78,9 @@
 
         // Marks group
         svgEl.append("g").attr("class", "marks");
+
+        // Handles group
+        svgEl.append("g").attr("class", "handles");
     }
 
     function setupCanvas() {
@@ -152,7 +155,11 @@
 
     function updateMarks() {
         if (!svg || !xScale) return;
-        d3.select(svg)
+
+        const svgEl = d3.select(svg);
+
+        // Update vertical lines
+        svgEl
             .select("g.marks")
             .selectAll("line")
             .data(domainMarks)
@@ -164,6 +171,36 @@
             .style("stroke", "#ef4444")
             .style("stroke-width", 2)
             .style("stroke-dasharray", "5,5");
+
+        // Update handles
+        svgEl
+            .select("g.handles")
+            .selectAll("path")
+            .data(domainMarks)
+            .join("path")
+            .attr("transform", (x) => `translate(${xScale(x)}, ${height - 10})`)
+            // Triangle shape pointing up
+            .attr("d", d3.symbol().type(d3.symbolTriangle).size(150))
+            .style("fill", "#ef4444")
+            .style("cursor", "ew-resize")
+            .style("pointer-events", "all")
+            .each(function (d, i) {
+                d3.select(this).call(
+                    d3.drag().on("drag", function (event) {
+                        const [pointerX] = d3.pointer(event, svg);
+                        let value = xScale.invert(pointerX);
+                        value = Math.max(
+                            xDomain[0],
+                            Math.min(xDomain[1], value),
+                        );
+
+                        // Round to 1 decimal place for cleaner values
+                        value = Math.round(value * 10) / 10;
+
+                        dispatch("domainChange", { index: i, value });
+                    }),
+                );
+            });
     }
 
     $: if (svg && xScale) (updateMarks(), domainMarks);
@@ -180,8 +217,8 @@
     bind:this={container}
     style="width:{width}px;height:{height}px;"
 >
-    <svg bind:this={svg} {width} {height}></svg>
     <canvas bind:this={canvas} {width} {height}></canvas>
+    <svg bind:this={svg} {width} {height}></svg>
 </div>
 
 <style>
@@ -200,5 +237,8 @@
     }
     canvas {
         cursor: crosshair;
+    }
+    svg {
+        pointer-events: none;
     }
 </style>

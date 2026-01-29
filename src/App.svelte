@@ -81,6 +81,17 @@
         coefs = null;
         if (canvasRef) canvasRef.clear();
     }
+
+    function handleDomainChange(event) {
+        const { index, value } = event.detail;
+        if (index === 0) {
+            // Update a, ensure it doesn't cross b
+            a = Math.min(value, b - 0.5);
+        } else {
+            // Update b, ensure it doesn't cross a
+            b = Math.max(value, a + 0.5);
+        }
+    }
 </script>
 
 <main>
@@ -138,6 +149,7 @@
             height={350}
             domainMarks={[a, b]}
             on:draw={handleDraw}
+            on:domainChange={handleDomainChange}
         />
     </section>
 
