@@ -30,6 +30,7 @@
 
         setupSvg();
         setupCanvas();
+        setupMarks();
         updateMarks();
     });
 
@@ -185,33 +186,28 @@
         ctx.restore();
     }
 
-    function updateMarks() {
+    function setupMarks() {
         if (!svg || !xScale) return;
 
         const svgEl = d3.select(svg);
 
-        // Update vertical lines
+        // Create vertical lines once
         svgEl
             .select("g.marks")
             .selectAll("line")
-            .data([a, b])
+            .data([0, 1]) // Use indices
             .join("line")
-            .attr("x1", (x) => xScale(x))
             .attr("y1", margin.top)
-            .attr("x2", (x) => xScale(x))
             .attr("y2", height - margin.bottom)
             .style("stroke", "#ef4444")
             .style("stroke-width", 2)
             .style("stroke-dasharray", "5,5");
 
-        // Update handles
         svgEl
             .select("g.handles")
             .selectAll("path")
-            .data([a, b])
+            .data([0, 1]) // Use indices instead of values
             .join("path")
-            .attr("transform", (x) => `translate(${xScale(x)}, ${height - 10})`)
-            // Triangle shape pointing up
             .attr("d", d3.symbol().type(d3.symbolTriangle).size(150))
             .style("fill", "#ef4444")
             .style("cursor", "ew-resize")
@@ -219,10 +215,8 @@
             .each(function (d, i) {
                 d3.select(this).call(
                     d3.drag().on("drag", function (event) {
-
                         const pointerX = event.x;
 
-                        // Guard against non-finite values
                         if (!isFinite(pointerX)) return;
 
                         let value = xScale.invert(pointerX);
@@ -231,17 +225,39 @@
                             Math.min(xDomain[1], value),
                         );
 
-                        // Round to 1 decimal place for cleaner values
                         value = Math.round(value * 10) / 10;
 
                         if (i === 0) {
-                            a = value;
+                            a = Math.min(value, b - 0.5);
                         } else {
-                            b = value;
+                            b = Math.max(value, a + 0.5);
                         }
                     }),
                 );
             });
+    }
+
+    function updateMarks() {
+        if (!svg || !xScale) return;
+
+        const svgEl = d3.select(svg);
+
+        // Just update positions of vertical lines
+        svgEl
+            .select("g.marks")
+            .selectAll("line")
+            .attr("x1", (d, i) => xScale(i === 0 ? a : b))
+            .attr("x2", (d, i) => xScale(i === 0 ? a : b));
+
+        // Just update handle positions
+        svgEl
+            .select("g.handles")
+            .selectAll("path")
+            .attr(
+                "transform",
+                (d, i) =>
+                    `translate(${xScale(i === 0 ? a : b)}, ${height - 10})`,
+            );
     }
 
     $: if (svg && xScale) (updateMarks(), a, b);
