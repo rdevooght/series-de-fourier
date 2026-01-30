@@ -219,7 +219,12 @@
             .each(function (d, i) {
                 d3.select(this).call(
                     d3.drag().on("drag", function (event) {
-                        const [pointerX] = d3.pointer(event, svg);
+
+                        const pointerX = event.x;
+
+                        // Guard against non-finite values
+                        if (!isFinite(pointerX)) return;
+
                         let value = xScale.invert(pointerX);
                         value = Math.max(
                             xDomain[0],
