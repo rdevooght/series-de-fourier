@@ -1,20 +1,21 @@
 <script>
-    import { onMount, createEventDispatcher } from "svelte";
+    import { onMount } from "svelte";
     import * as d3 from "d3";
 
     export let height = 400;
     export let xDomain = [0, 10];
     export let yDomain = [0, 10];
-    export let domainMarks = [];
+    export let a = 2;
+    export let b = 8;
+    export let points = []; // Points that are sync'ed with the parent module
 
-    const dispatch = createEventDispatcher();
     const margin = { top: 30, right: 30, bottom: 40, left: 50 };
 
     let width;
     let canvas;
     let svg;
-    let points = [];
     let xScale, yScale;
+    let _points = []; // values that are rendered and updated on drag
 
     onMount(() => {
         xScale = d3
@@ -31,6 +32,14 @@
         setupCanvas();
         updateMarks();
     });
+
+    // Reactively render when points change externally
+    $: if (points) {
+        _points = points;
+        if (canvas && width && height) {
+            requestAnimationFrame(render);
+        }
+    }
 
     function setupSvg() {
         const svgEl = d3.select(svg);
@@ -98,7 +107,7 @@
     }
 
     function dragStart() {
-        points = [];
+        _points = [];
     }
 
     function dragged(event) {
@@ -111,14 +120,14 @@
         ) {
             const domainX = xScale.invert(x);
             const domainY = yScale.invert(y);
-            points.push([domainX, domainY]);
+            _points.push([domainX, domainY]);
             render();
         }
     }
 
     function dragEnd() {
-        if (points.length > 1) {
-            dispatch("draw", { points: [...points] });
+        if (_points.length > 1) {
+            points = [..._points];
         }
     }
 
@@ -126,7 +135,7 @@
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, width, height);
 
-        if (points.length < 2) return;
+        if (!_points || _points.length < 2) return;
 
         ctx.save();
         ctx.beginPath();
@@ -144,8 +153,11 @@
 
         const curve = d3.curveBasis(ctx);
         curve.lineStart();
-        for (const point of points) {
-            curve.point(xScale(point[0]), yScale(point[1]));
+        for (const point of _points) {
+            // Check if xScale exists (might be rendering before mount fully done)
+            if (xScale && yScale) {
+                curve.point(xScale(point[0]), yScale(point[1]));
+            }
         }
         curve.lineEnd();
         ctx.stroke();
@@ -161,7 +173,7 @@
         svgEl
             .select("g.marks")
             .selectAll("line")
-            .data(domainMarks)
+            .data([a, b])
             .join("line")
             .attr("x1", (x) => xScale(x))
             .attr("y1", margin.top)
@@ -175,7 +187,7 @@
         svgEl
             .select("g.handles")
             .selectAll("path")
-            .data(domainMarks)
+            .data([a, b])
             .join("path")
             .attr("transform", (x) => `translate(${xScale(x)}, ${height - 10})`)
             // Triangle shape pointing up
@@ -196,19 +208,17 @@
                         // Round to 1 decimal place for cleaner values
                         value = Math.round(value * 10) / 10;
 
-                        dispatch("domainChange", { index: i, value });
+                        if (i === 0) {
+                            a = value;
+                        } else {
+                            b = value;
+                        }
                     }),
                 );
             });
     }
 
-    $: if (svg && xScale) (updateMarks(), domainMarks);
-
-    export function clear() {
-        points = [];
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, width, height);
-    }
+    $: if (svg && xScale) (updateMarks(), a, b);
 </script>
 
 <div

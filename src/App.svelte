@@ -23,20 +23,11 @@
         bk: Array(maxMaxK).fill(true),
     };
 
-    // Reference to canvas for clearing
-    let canvasRef;
-
-    // Handle new drawing
-    function handleDraw(event) {
-        drawnPoints = event.detail.points;
-        if (drawnPoints.length > 1) {
-            coefs = computeFourierCoefs(drawnPoints, a, b, maxK);
-        }
-    }
-
-    // Recompute when maxK changes
-    $: if (drawnPoints.length > 1) {
+    // Reactively compute coefficients when points change
+    $: if (drawnPoints && drawnPoints.length > 1) {
         coefs = computeFourierCoefs(drawnPoints, a, b, maxK);
+    } else {
+        coefs = null;
     }
 
     // Generate Fourier approximation samples
@@ -76,18 +67,6 @@
     function clearCanvas() {
         drawnPoints = [];
         coefs = null;
-        if (canvasRef) canvasRef.clear();
-    }
-
-    function handleDomainChange(event) {
-        const { index, value } = event.detail;
-        if (index === 0) {
-            // Update a, ensure it doesn't cross b
-            a = Math.min(value, b - 0.5);
-        } else {
-            // Update b, ensure it doesn't cross a
-            b = Math.max(value, a + 0.5);
-        }
     }
 
     // Bulk actions
@@ -167,11 +146,10 @@
             </div>
 
             <DrawingCanvas
-                bind:this={canvasRef}
                 height={350}
-                domainMarks={[a, b]}
-                on:draw={handleDraw}
-                on:domainChange={handleDomainChange}
+                bind:points={drawnPoints}
+                bind:a
+                bind:b
             />
         </section>
 
