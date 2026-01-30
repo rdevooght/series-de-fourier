@@ -16,6 +16,43 @@
     let maxK = 5; // Number of Fourier terms
     let maxMaxK = 20; // Maximum number of Fourier terms
 
+    // Sample functions
+    const sampleFunctions = [
+        {
+            name: "sin(x)",
+            func: (x) => Math.sin(x),
+            domain: [-Math.PI, Math.PI],
+        },
+        {
+            name: "x²",
+            func: (x) => x ** 2,
+            domain: [-2, 2],
+        },
+        {
+            name: "e^x",
+            func: (x) => Math.exp(x),
+            domain: [-1, 1],
+        },
+        {
+            name: "step",
+            func: (x) => (x > 0 ? 1 : -1),
+            domain: [-1, 1],
+        },
+        {
+            name: "dents de scie",
+            func: (x) => x - Math.floor(x),
+            domain: [0, 1],
+        },
+    ];
+
+    function setFunction(func) {
+        if (func.domain) {
+            a = func.domain[0];
+            b = func.domain[1];
+        }
+        drawnPoints = sampleFunction(func.func, xDomain[0], xDomain[1], 300);
+    }
+
     // Drawn points and computed coefficients
     let drawnPoints = [];
     let coefs = null;
@@ -148,6 +185,22 @@
                 {#if drawnPoints.length > 1}
                     <button on:click={clearCanvas}>Effacer</button>
                 {/if}
+            </div>
+
+            <div id="function-picker">
+                <p>Ou choisissez parmi les fonctions suivantes :</p>
+                <ul>
+                    {#each sampleFunctions as func}
+                        <li>
+                            <input
+                                type="button"
+                                name="function"
+                                value={func.name}
+                                on:click={() => setFunction(func)}
+                            />
+                        </li>
+                    {/each}
+                </ul>
             </div>
 
             <DrawingCanvas
@@ -511,5 +564,34 @@
     .coef-constant .title {
         color: #334155;
         font-size: 1.1rem;
+    }
+
+    #function-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 15px;
+    }
+
+    #function-picker ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    #function-picker ul input[type="button"] {
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+        background-color: #f1f5f9;
+    }
+
+    #function-picker ul input[type="button"]:hover {
+        background-color: #e5e7eb;
     }
 </style>
