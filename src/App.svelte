@@ -8,8 +8,10 @@
     } from "./lib/fourier.js";
 
     // Domain parameters
-    let a = 2;
-    let b = 8;
+    let a = -Math.PI;
+    let b = Math.PI;
+    let xDomain = [-5, 5];
+    let yDomain = [-5, 5];
 
     let maxK = 5; // Number of Fourier terms
     let maxMaxK = 20; // Maximum number of Fourier terms
@@ -42,8 +44,8 @@
     $: approxPoints = coefs
         ? sampleFunction(
               fourierApprox(getActiveCoefs(coefs, coefsActivity)),
-              0,
-              10,
+              xDomain[0],
+              xDomain[1],
               300,
           )
         : [];
@@ -54,8 +56,8 @@
             points: sampleFunction(
                 (x) =>
                     c * Math[type]((2 * (i + 1) * Math.PI * (x - a)) / (b - a)),
-                0,
-                10,
+                xDomain[0],
+                xDomain[1],
                 200,
             ),
             color: `hsl(${(i * 360) / maxK}, 70%, 50%)`,
@@ -138,7 +140,10 @@
             <div class="control-group">
                 <div>
                     <h2>Dessinez votre fonction</h2>
-                    <p>Tracez entre les lignes rouges (a = {a} et b = {b})</p>
+                    <p>
+                        Tracez entre les lignes rouges (a = {a.toFixed(2)} et b =
+                        {b.toFixed(2)})
+                    </p>
                 </div>
                 {#if drawnPoints.length > 1}
                     <button on:click={clearCanvas}>Effacer</button>
@@ -147,6 +152,8 @@
 
             <DrawingCanvas
                 height={350}
+                {xDomain}
+                {yDomain}
                 bind:points={drawnPoints}
                 bind:a
                 bind:b
@@ -158,8 +165,8 @@
                 <h2>Approximation de Fourier</h2>
                 <FunctionPlot
                     height={350}
-                    xDomain={[0, 10]}
-                    yDomain={[0, 10]}
+                    {xDomain}
+                    {yDomain}
                     lines={[
                         { points: approxPoints, color: "#2563eb", width: 2 },
                     ]}
@@ -196,7 +203,7 @@
                 <h2>Termes cosinus</h2>
                 <FunctionPlot
                     height={220}
-                    xDomain={[0, 10]}
+                    {xDomain}
                     yDomain={[-2, 2]}
                     lines={getTermsFunctions("cos", coefs.ak, coefsActivity.ak)}
                     title="aₖ · cos(2kπ(x-a)/(b-a))"
@@ -243,7 +250,7 @@
                 <h2>Termes sinus</h2>
                 <FunctionPlot
                     height={220}
-                    xDomain={[0, 10]}
+                    {xDomain}
                     yDomain={[-2, 2]}
                     lines={getTermsFunctions("sin", coefs.bk, coefsActivity.bk)}
                     title="bₖ · sin(2kπ(x-a)/(b-a))"

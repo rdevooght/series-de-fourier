@@ -49,13 +49,15 @@
         svgEl
             .append("g")
             .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(xScale));
+            .call(d3.axisBottom(xScale))
+            .call((g) => g.select(".domain").style("opacity", 0));
 
         // Y axis
         svgEl
             .append("g")
             .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(yScale));
+            .call(d3.axisLeft(yScale))
+            .call((g) => g.select(".domain").style("opacity", 0));
 
         // Grid
         svgEl
@@ -83,6 +85,25 @@
                     .tickSize(-width + margin.left + margin.right)
                     .tickFormat(""),
             );
+
+        // Reference lines at x=0 and y=0
+        svgEl
+            .append("line")
+            .attr("x1", xScale(xDomain[0]))
+            .attr("x2", xScale(xDomain[1]))
+            .attr("y1", yScale(0) + 0.5)
+            .attr("y2", yScale(0) + 0.5)
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
+
+        svgEl
+            .append("line")
+            .attr("x1", xScale(0) + 0.5)
+            .attr("x2", xScale(0) + 0.5)
+            .attr("y1", yScale(yDomain[0]))
+            .attr("y2", yScale(yDomain[1]))
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
 
         // Marks group
         svgEl.append("g").attr("class", "marks");
