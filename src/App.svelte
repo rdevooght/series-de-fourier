@@ -182,7 +182,7 @@
     // Term plotting
     // ========================================================================
 
-    function getTermsFunctions(familyIndex, familyConfig) {
+    function getTermsFunctions(familyIndex, familyConfig, coefsActivity) {
         if (!coefs || !coefs.families[familyIndex]) return [];
 
         const system = getSystem(basisType);
@@ -212,13 +212,13 @@
     }
 
     // Check if all or no coefficients of a family are active
-    function allActive(familyIndex) {
+    function allActive(familyIndex, coefsActivity) {
         const famActivity = coefsActivity.families[familyIndex];
         if (!famActivity) return false;
         return famActivity.slice(0, maxK).every((v) => v);
     }
 
-    function allInactive(familyIndex) {
+    function allInactive(familyIndex, coefsActivity) {
         const famActivity = coefsActivity.families[familyIndex];
         if (!famActivity) return true;
         return famActivity.slice(0, maxK).every((v) => !v);
@@ -228,6 +228,17 @@
         coefsActivity.families[familyIndex] = coefsActivity.families[
             familyIndex
         ].map((v, i) => (i < maxK ? active : v));
+        coefsActivity = { ...coefsActivity };
+    }
+
+    function activateAllCoefs() {
+        for (
+            let familyIndex = 0;
+            familyIndex < coefsActivity.families.length;
+            familyIndex++
+        ) {
+            setAllFamilyCoefs(familyIndex, true);
+        }
     }
 </script>
 
@@ -285,6 +296,7 @@
                                 name="basis"
                                 value={systemId}
                                 bind:group={basisType}
+                                on:click={activateAllCoefs}
                             />
                             {SYSTEMS_CONFIG[systemId].label}
                         </label>
@@ -381,7 +393,11 @@
                         height={220}
                         {xDomain}
                         yDomain={[-2, 2]}
-                        lines={getTermsFunctions(fi, familyConfig)}
+                        lines={getTermsFunctions(
+                            fi,
+                            familyConfig,
+                            coefsActivity,
+                        )}
                         title={familyConfig.plotTitle}
                     />
 
@@ -413,14 +429,14 @@
                         <div class="bulk-actions">
                             <button
                                 class="text-btn"
-                                disabled={allActive(fi)}
+                                disabled={allActive(fi, coefsActivity)}
                                 on:click={() => setAllFamilyCoefs(fi, true)}
                             >
                                 Tout activer
                             </button>
                             <button
                                 class="text-btn"
-                                disabled={allInactive(fi)}
+                                disabled={allInactive(fi, coefsActivity)}
                                 on:click={() => setAllFamilyCoefs(fi, false)}
                             >
                                 Tout désactiver
@@ -436,8 +452,8 @@
 <style>
     :global(body) {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            sans-serif;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: #f8fafc;
     }
 
@@ -478,8 +494,8 @@
         }
 
         .terms-container.two-cols {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            flex-direction: row;
             gap: 2rem;
             align-items: start;
             max-width: 1200px; /* Use full available width */
@@ -489,6 +505,11 @@
         .terms-container.single-col {
             max-width: 700px;
         }
+    }
+
+    .term-group {
+        flex-grow: 1;
+        flex-basis: 50%;
     }
 
     h1 {

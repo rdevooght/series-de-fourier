@@ -124,8 +124,6 @@
 
     onMount(draw);
     $: if (svg) (draw(), lines, xDomain, yDomain);
-
-    $: console.log(width);
 </script>
 
 <div class="plot-container" bind:clientWidth={width}>
