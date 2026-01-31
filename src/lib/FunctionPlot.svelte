@@ -123,7 +123,7 @@
     }
 
     onMount(draw);
-    $: if (svg) (draw(), lines, xDomain, yDomain);
+    $: if (svg) (draw(), lines, xDomain, yDomain, width);
 </script>
 
 <div class="plot-container" bind:clientWidth={width}>

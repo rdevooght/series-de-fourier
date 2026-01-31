@@ -508,8 +508,8 @@
     }
 
     .term-group {
-        flex-grow: 1;
-        flex-basis: 50%;
+        flex: 1 1 0;
+        min-width: 0;
     }
 
     h1 {
