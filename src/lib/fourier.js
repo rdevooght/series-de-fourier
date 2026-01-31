@@ -1,7 +1,15 @@
 /**
- * Fourier series computation utilitie
- * Adapted from Observable notebook
+ * Fourier series computation utilities
+ * 
+ * Architecture: Each basis system is defined in the SYSTEMS registry with:
+ * - computeC0: computes the constant term
+ * - evalC0: how the constant term contributes to the approximation sum
+ * - families: array of coefficient families, each with computeCoef and evalTerm
  */
+
+// ============================================================================
+// Core utilities (shared by all systems)
+// ============================================================================
 
 /**
  * Clean a curve by removing points where x decreases (ensures monotonic x)
@@ -88,9 +96,8 @@ export function integrate(points, a, b) {
 /**
  * Oversample a curve to ensure enough points for accurate integration
  */
-export function oversample(points, a, b, k) {
-  const minPointsPerPeriod = 10;
-  const period = (b - a) / (2 * k);
+export function oversample(points, a, b, k, minPointsPerPeriod = 10) {
+  const period = k === 0 ? b - a : (b - a) / (2 * k);
   const desiredN = Math.ceil(((b - a) / period) * minPointsPerPeriod);
 
   if (points.length < desiredN) {
@@ -103,79 +110,12 @@ export function oversample(points, a, b, k) {
       const y =
         points[j - 1][1] +
         ((x - points[j - 1][0]) * (points[j][1] - points[j - 1][1])) /
-          (points[j][0] - points[j - 1][0]);
+        (points[j][0] - points[j - 1][0]);
       interpolatedPoints.push([x, y]);
     }
     return interpolatedPoints;
   }
   return points;
-}
-
-/**
- * Compute a0 coefficient (constant term)
- */
-export function computeA0(curve, a, b) {
-  return (integrate(curve, a, b) * 2) / (b - a);
-}
-
-/**
- * Compute ak coefficient (cosine terms)
- */
-export function computeAk(curve, a, b, k) {
-  const oversampled = oversample(curve, a, b, k);
-  const productCurve = oversampled.map((p) => [
-    p[0],
-    p[1] * Math.cos((2 * k * Math.PI * (p[0] - a)) / (b - a)),
-  ]);
-  return (integrate(productCurve, a, b) * 2) / (b - a);
-}
-
-/**
- * Compute bk coefficient (sine terms)
- */
-export function computeBk(curve, a, b, k) {
-  const oversampled = oversample(curve, a, b, k);
-  const productCurve = oversampled.map((p) => [
-    p[0],
-    p[1] * Math.sin((2 * k * Math.PI * (p[0] - a)) / (b - a)),
-  ]);
-  return (integrate(productCurve, a, b) * 2) / (b - a);
-}
-
-/**
- * Compute all Fourier coefficients up to max_k
- */
-export function computeFourierCoefs(curve, a, b, maxK) {
-  const coefs = {
-    a0: computeA0(curve, a, b),
-    ak: [],
-    bk: [],
-    domain: [a, b],
-  };
-
-  for (let k = 1; k <= maxK; k++) {
-    coefs.ak.push(computeAk(curve, a, b, k));
-    coefs.bk.push(computeBk(curve, a, b, k));
-  }
-  return coefs;
-}
-
-/**
- * Create a function that evaluates the Fourier approximation
- */
-export function fourierApprox(coefs) {
-  const maxK = coefs.ak.length;
-  const T = coefs.domain[1] - coefs.domain[0];
-  const a = coefs.domain[0];
-
-  return function (x) {
-    let y = coefs.a0 / 2;
-    for (let k = 1; k <= maxK; k++) {
-      y += coefs.ak[k - 1] * Math.cos((2 * k * Math.PI * (x - a)) / T);
-      y += coefs.bk[k - 1] * Math.sin((2 * k * Math.PI * (x - a)) / T);
-    }
-    return y;
-  };
 }
 
 /**
@@ -188,4 +128,205 @@ export function sampleFunction(f, xMin, xMax, n = 200) {
     points.push([x, f(x)]);
   }
   return points;
+}
+
+// ============================================================================
+// Trigonometric coefficient computation (used by standard, sin, cos systems)
+// ============================================================================
+
+/**
+ * Compute trigonometric coefficient for a specific frequency
+ * @param curve - the drawn curve
+ * @param a, b - domain bounds
+ * @param k - frequency index (1, 2, 3, ...)
+ * @param trigFn - Math.cos or Math.sin
+ * @param multiplier - 2 for standard (full period), 1 for half-period expansions
+ */
+function computeTrigCoef(curve, a, b, k, trigFn, multiplier) {
+  const effK = multiplier === 2 ? k : k / 2;
+  const oversampled = oversample(curve, a, b, effK);
+
+  const productCurve = oversampled.map((p) => {
+    const theta = (multiplier * k * Math.PI * (p[0] - a)) / (b - a);
+    return [p[0], p[1] * trigFn(theta)];
+  });
+
+  return (integrate(productCurve, a, b) * 2) / (b - a);
+}
+
+// ============================================================================
+// Chebyshev coefficient computation
+// ============================================================================
+
+/**
+ * Compute Chebyshev coefficient Tk using theta-domain integration
+ */
+function computeChebyshevCoef(curve, a, b, k) {
+  const finePoints = oversample(curve, a, b, Math.max(k, 10));
+  const mid = (a + b) / 2;
+  const half = (b - a) / 2;
+
+  const thetaPoints = [];
+  const steps = 500;
+  for (let i = 0; i <= steps; i++) {
+    const theta = (i / steps) * Math.PI;
+    const x = mid + half * Math.cos(theta);
+
+    // Interpolate y at x
+    let y = 0;
+    const idx = finePoints.findIndex((p) => p[0] >= x);
+    if (idx === -1) y = finePoints[finePoints.length - 1][1];
+    else if (idx === 0) y = finePoints[0][1];
+    else {
+      y = interpolate(
+        x,
+        finePoints[idx - 1][0],
+        finePoints[idx - 1][1],
+        finePoints[idx][0],
+        finePoints[idx][1],
+      );
+    }
+
+    thetaPoints.push([theta, y * Math.cos(k * theta)]);
+  }
+
+  const integral = integrate(thetaPoints, 0, Math.PI);
+  return k === 0 ? integral / Math.PI : integral / (Math.PI / 2);
+}
+
+/**
+ * Evaluate Chebyshev polynomial Tn at x (where x is in original domain [a, b])
+ */
+function evalChebyshevTerm(k, x, a, b) {
+  const mid = (a + b) / 2;
+  const half = (b - a) / 2;
+  const xNorm = (x - mid) / half;
+
+  if (xNorm >= -1 && xNorm <= 1) {
+    return Math.cos(k * Math.acos(xNorm));
+  } else if (xNorm > 1) {
+    return Math.cosh(k * Math.acosh(xNorm));
+  } else {
+    return (k % 2 === 0 ? 1 : -1) * Math.cosh(k * Math.acosh(-xNorm));
+  }
+}
+
+// ============================================================================
+// SYSTEMS Registry
+// ============================================================================
+
+export const SYSTEMS = {
+  standard: {
+    id: "standard",
+    computeC0: (curve, a, b) => (integrate(curve, a, b) * 2) / (b - a),
+    evalC0: (c0) => c0 / 2,
+    families: [
+      {
+        id: "cos",
+        coefPrefix: "a",
+        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.cos, 2),
+        evalTerm: (k, x, a, b) => Math.cos((2 * k * Math.PI * (x - a)) / (b - a)),
+      },
+      {
+        id: "sin",
+        coefPrefix: "b",
+        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.sin, 2),
+        evalTerm: (k, x, a, b) => Math.sin((2 * k * Math.PI * (x - a)) / (b - a)),
+      },
+    ],
+  },
+
+  cos: {
+    id: "cos",
+    computeC0: (curve, a, b) => (integrate(curve, a, b) * 2) / (b - a),
+    evalC0: (c0) => c0 / 2,
+    families: [
+      {
+        id: "cos",
+        coefPrefix: "a",
+        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.cos, 1),
+        evalTerm: (k, x, a, b) => Math.cos((k * Math.PI * (x - a)) / (b - a)),
+      },
+    ],
+  },
+
+  sin: {
+    id: "sin",
+    computeC0: () => 0,
+    evalC0: () => 0,
+    families: [
+      {
+        id: "sin",
+        coefPrefix: "b",
+        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.sin, 1),
+        evalTerm: (k, x, a, b) => Math.sin((k * Math.PI * (x - a)) / (b - a)),
+      },
+    ],
+  },
+
+  chebyshev: {
+    id: "chebyshev",
+    computeC0: (curve, a, b) => computeChebyshevCoef(curve, a, b, 0),
+    evalC0: (c0) => c0,
+    families: [
+      {
+        id: "T",
+        coefPrefix: "T",
+        computeCoef: (curve, a, b, k) => computeChebyshevCoef(curve, a, b, k),
+        evalTerm: (k, x, a, b) => evalChebyshevTerm(k, x, a, b),
+      },
+    ],
+  },
+};
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+/**
+ * Compute all Fourier coefficients up to maxK for a given system
+ * Returns: { type, c0, families: [{id, coefs: []}], domain: [a, b] }
+ */
+export function computeFourierCoefs(curve, a, b, maxK, systemId) {
+  const system = SYSTEMS[systemId];
+
+  return {
+    type: systemId,
+    c0: system.computeC0(curve, a, b),
+    families: system.families.map((fam) => ({
+      id: fam.id,
+      coefs: Array.from({ length: maxK }, (_, i) =>
+        fam.computeCoef(curve, a, b, i + 1)
+      ),
+    })),
+    domain: [a, b],
+  };
+}
+
+/**
+ * Create a function that evaluates the Fourier approximation
+ */
+export function fourierApprox(coefs) {
+  const system = SYSTEMS[coefs.type];
+  const [a, b] = coefs.domain;
+
+  return function (x) {
+    let y = system.evalC0(coefs.c0);
+
+    coefs.families.forEach((fam, fi) => {
+      const famDef = system.families[fi];
+      fam.coefs.forEach((c, k) => {
+        y += c * famDef.evalTerm(k + 1, x, a, b);
+      });
+    });
+
+    return y;
+  };
+}
+
+/**
+ * Get the system definition by ID
+ */
+export function getSystem(systemId) {
+  return SYSTEMS[systemId];
 }
