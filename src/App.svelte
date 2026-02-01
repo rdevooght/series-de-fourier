@@ -1,6 +1,7 @@
 <script>
     import DrawingCanvas from "./lib/DrawingCanvas.svelte";
     import FunctionPlot from "./lib/FunctionPlot.svelte";
+    import Footer from "./lib/Footer.svelte";
     import {
         computeFourierCoefs,
         fourierApprox,
@@ -442,6 +443,8 @@
         </div>
     {/if}
 </main>
+
+<Footer />
 
 <style>
     :global(body) {
