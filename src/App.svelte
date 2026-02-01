@@ -76,17 +76,17 @@
     // Domain and general parameters
     // ========================================================================
 
-    let a = -Math.PI;
-    let b = Math.PI;
-    let xDomain = [-5, 5];
-    let yDomain = [-5, 5];
+    let a = $state(-Math.PI);
+    let b = $state(Math.PI);
+    let xDomain = $state([-5, 5]);
+    let yDomain = $state([-5, 5]);
 
-    let maxK = 5;
-    let maxMaxK = 20;
-    let basisType = "standard";
+    let maxK = $state(5);
+    let maxMaxK = $state(20);
+    let basisType = $state("standard");
 
     // Current system config derived reactively
-    $: currentSystemConfig = SYSTEMS_CONFIG[basisType];
+    let currentSystemConfig = $derived(SYSTEMS_CONFIG[basisType]);
 
     // ========================================================================
     // Sample functions
@@ -132,24 +132,21 @@
     // Drawn points and computed coefficients
     // ========================================================================
 
-    let drawnPoints = [];
-    let coefs = null;
+    let drawnPoints = $state([]);
+    let coefs = $derived.by(() => {
+        if (drawnPoints && drawnPoints.length > 1) {
+            return computeFourierCoefs(drawnPoints, a, b, maxK, basisType);
+        } else {
+            return null;
+        }
+    });
 
     // Activity state: c0 and per-family coefficient toggle
     // families is an array of boolean arrays, one per family
-    let coefsActivity = {
+    let coefsActivity = $state({
         c0: true,
-        families: Array(2)
-            .fill(null)
-            .map(() => Array(maxMaxK).fill(true)),
-    };
-
-    // Reactively compute coefficients when points change
-    $: if (drawnPoints && drawnPoints.length > 1) {
-        coefs = computeFourierCoefs(drawnPoints, a, b, maxK, basisType);
-    } else {
-        coefs = null;
-    }
+        families: [Array(maxMaxK).fill(true), Array(maxMaxK).fill(true)],
+    });
 
     // ========================================================================
     // Approximation with active coefficients
@@ -169,20 +166,22 @@
         };
     }
 
-    $: approxPoints = coefs
-        ? sampleFunction(
-              fourierApprox(getActiveCoefs(coefs, coefsActivity)),
-              xDomain[0],
-              xDomain[1],
-              300,
-          )
-        : [];
+    let approxPoints = $derived(
+        coefs
+            ? sampleFunction(
+                  fourierApprox(getActiveCoefs(coefs, coefsActivity)),
+                  xDomain[0],
+                  xDomain[1],
+                  300,
+              )
+            : [],
+    );
 
     // ========================================================================
     // Term plotting
     // ========================================================================
 
-    function getTermsFunctions(familyIndex, familyConfig, coefsActivity) {
+    function getTermsFunctions(familyIndex, familyConfig) {
         if (!coefs || !coefs.families[familyIndex]) return [];
 
         const system = getSystem(basisType);
@@ -212,13 +211,13 @@
     }
 
     // Check if all or no coefficients of a family are active
-    function allActive(familyIndex, coefsActivity) {
+    function allActive(familyIndex) {
         const famActivity = coefsActivity.families[familyIndex];
         if (!famActivity) return false;
         return famActivity.slice(0, maxK).every((v) => v);
     }
 
-    function allInactive(familyIndex, coefsActivity) {
+    function allInactive(familyIndex) {
         const famActivity = coefsActivity.families[familyIndex];
         if (!famActivity) return true;
         return famActivity.slice(0, maxK).every((v) => !v);
@@ -228,7 +227,6 @@
         coefsActivity.families[familyIndex] = coefsActivity.families[
             familyIndex
         ].map((v, i) => (i < maxK ? active : v));
-        coefsActivity = { ...coefsActivity };
     }
 
     function activateAllCoefs() {
@@ -296,7 +294,7 @@
                                 name="basis"
                                 value={systemId}
                                 bind:group={basisType}
-                                on:click={activateAllCoefs}
+                                onclick={activateAllCoefs}
                             />
                             {SYSTEMS_CONFIG[systemId].label}
                         </label>
@@ -315,7 +313,7 @@
                     </p>
                 </div>
                 {#if drawnPoints.length > 1}
-                    <button on:click={clearCanvas}>Effacer</button>
+                    <button onclick={clearCanvas}>Effacer</button>
                 {/if}
             </div>
 
@@ -328,7 +326,7 @@
                                 type="button"
                                 name="function"
                                 value={func.name}
-                                on:click={() => setFunction(func)}
+                                onclick={() => setFunction(func)}
                             />
                         </li>
                     {/each}
@@ -362,7 +360,7 @@
                     <span class="title">Terme constant:</span>
                     <label
                         style="display: inline"
-                        class={["coef", coefsActivity.c0 && "active"]}
+                        class:active={coefsActivity.c0}
                     >
                         <input
                             type="checkbox"
@@ -393,11 +391,7 @@
                         height={220}
                         {xDomain}
                         yDomain={[-2, 2]}
-                        lines={getTermsFunctions(
-                            fi,
-                            familyConfig,
-                            coefsActivity,
-                        )}
+                        lines={getTermsFunctions(fi, familyConfig)}
                         title={familyConfig.plotTitle}
                     />
 
@@ -429,15 +423,15 @@
                         <div class="bulk-actions">
                             <button
                                 class="text-btn"
-                                disabled={allActive(fi, coefsActivity)}
-                                on:click={() => setAllFamilyCoefs(fi, true)}
+                                disabled={allActive(fi)}
+                                onclick={() => setAllFamilyCoefs(fi, true)}
                             >
                                 Tout activer
                             </button>
                             <button
                                 class="text-btn"
-                                disabled={allInactive(fi, coefsActivity)}
-                                on:click={() => setAllFamilyCoefs(fi, false)}
+                                disabled={allInactive(fi)}
+                                onclick={() => setAllFamilyCoefs(fi, false)}
                             >
                                 Tout désactiver
                             </button>
