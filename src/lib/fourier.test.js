@@ -146,30 +146,45 @@ describe("computeFourierCoefs", () => {
     });
   });
 
-  describe("COS System ([0, PI])", () => {
-    const a = 0;
-    const b = Math.PI;
-    const maxK = 5;
-
-    it("should compute coefs for f(x) = cos(x)", () => {
+  describe("COS System ", () => {
+    it("should compute coefs for f(x) = cos(x) ([0, PI])", () => {
+      const a = 0;
+      const b = Math.PI;
+      const maxK = 5;
       const points = sampleFunction(Math.cos, a, b, 1000);
       const result = computeFourierCoefs(points, a, b, maxK, "cos");
 
-      // a1 = 1
-      compare(getCoef(result, "cos", 1), 1);
+      compare(result.c0, 0); // a0 = 0
+      compare(getCoef(result, "cos", 1), 1); // a1 = 1
 
       for (let k = 2; k <= maxK; k++) {
         compare(getCoef(result, "cos", k), 0);
       }
     });
+
+    it("should compute coefs for f(x) = cos(x) ([-PI, PI])", () => {
+      const a = -Math.PI;
+      const b = Math.PI;
+      const maxK = 5;
+      const points = sampleFunction(Math.cos, a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "cos");
+
+      compare(result.c0, 0); // a0 = 0
+      for (let k = 1; k <= maxK; k++) {
+        if (k == 2) {
+          compare(getCoef(result, "cos", k), -1);
+        } else {
+          compare(getCoef(result, "cos", k), 0);
+        }
+      }
+    });
   });
 
   describe("SIN System ([0, PI])", () => {
-    const a = 0;
-    const b = Math.PI;
-    const maxK = 5;
-
     it("should compute coefs for f(x) = sin(x)", () => {
+      const a = 0;
+      const b = Math.PI;
+      const maxK = 5;
       const points = sampleFunction(Math.sin, a, b, 1000);
       const result = computeFourierCoefs(points, a, b, maxK, "sin");
 
@@ -178,6 +193,22 @@ describe("computeFourierCoefs", () => {
 
       for (let k = 2; k <= maxK; k++) {
         compare(getCoef(result, "sin", k), 0);
+      }
+    });
+
+    it("should compute coefs for f(x) = cos(x) ([-PI, PI])", () => {
+      const a = -Math.PI;
+      const b = Math.PI;
+      const maxK = 5;
+      const points = sampleFunction(Math.cos, a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "sin");
+
+      for (let k = 1; k <= maxK; k++) {
+        if (k % 2 === 0) {
+          compare(getCoef(result, "sin", k), 0);
+        } else {
+          compare(getCoef(result, "sin", k), (4 * k) / (4 - k * k) / Math.PI);
+        }
       }
     });
   });

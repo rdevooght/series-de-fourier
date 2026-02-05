@@ -21,13 +21,13 @@
                 {
                     id: "cos",
                     title: "Termes cosinus",
-                    plotTitle: "aₖ · cos(kx...)",
+                    plotTitle: "aₖ · cos(2kπx/(b-a))",
                     coefPrefix: "a",
                 },
                 {
                     id: "sin",
                     title: "Termes sinus",
-                    plotTitle: "bₖ · sin(kx...)",
+                    plotTitle: "bₖ · sin(2kπx/(b-a))",
                     coefPrefix: "b",
                 },
             ],
@@ -39,7 +39,7 @@
                 {
                     id: "cos",
                     title: "Termes cosinus",
-                    plotTitle: "aₖ · cos(kx...)",
+                    plotTitle: "aₖ · cos(kπ(x-a)/(b-a))",
                     coefPrefix: "a",
                 },
             ],
@@ -51,7 +51,7 @@
                 {
                     id: "sin",
                     title: "Termes sinus",
-                    plotTitle: "bₖ · sin(kx...)",
+                    plotTitle: "bₖ · sin(kπ(x-a)/(b-a))",
                     coefPrefix: "b",
                 },
             ],

@@ -141,13 +141,14 @@ export function sampleFunction(f, xMin, xMax, n = 200) {
  * @param k - frequency index (1, 2, 3, ...)
  * @param trigFn - Math.cos or Math.sin
  * @param multiplier - 2 for standard (full period), 1 for half-period expansions
+ * @param offset - offset for the x-coordinate
  */
-function computeTrigCoef(curve, a, b, k, trigFn, multiplier) {
+function computeTrigCoef(curve, a, b, k, trigFn, multiplier, offset = 0) {
   const effK = multiplier === 2 ? k : k / 2;
   const oversampled = oversample(curve, a, b, effK);
 
   const productCurve = oversampled.map((p) => {
-    const theta = (multiplier * k * Math.PI * p[0]) / (b - a);
+    const theta = (multiplier * k * Math.PI * (p[0] - offset)) / (b - a);
     return [p[0], p[1] * trigFn(theta)];
   });
 
@@ -247,8 +248,8 @@ export const SYSTEMS = {
         id: "cos",
         coefPrefix: "a",
         computeCoef: (curve, a, b, k) =>
-          computeTrigCoef(curve, a, b, k, Math.cos, 1),
-        evalTerm: (k, x, a, b) => Math.cos((k * Math.PI * x) / (b - a)),
+          computeTrigCoef(curve, a, b, k, Math.cos, 1, a),
+        evalTerm: (k, x, a, b) => Math.cos((k * Math.PI * (x - a)) / (b - a)),
       },
     ],
   },
@@ -262,8 +263,8 @@ export const SYSTEMS = {
         id: "sin",
         coefPrefix: "b",
         computeCoef: (curve, a, b, k) =>
-          computeTrigCoef(curve, a, b, k, Math.sin, 1),
-        evalTerm: (k, x, a, b) => Math.sin((k * Math.PI * x) / (b - a)),
+          computeTrigCoef(curve, a, b, k, Math.sin, 1, a),
+        evalTerm: (k, x, a, b) => Math.sin((k * Math.PI * (x - a)) / (b - a)),
       },
     ],
   },
