@@ -126,7 +126,7 @@
             a = func.domain[0];
             b = func.domain[1];
         }
-        drawnPoints = sampleFunction(func.func, xDomain[0], xDomain[1], 300);
+        drawnPoints = sampleFunction(func.func, xDomain[0], xDomain[1], 1000);
     }
 
     // ========================================================================

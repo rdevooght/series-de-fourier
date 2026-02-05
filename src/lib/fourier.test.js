@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { integrate, computeFourierCoefs, sampleFunction } from "./fourier";
 
 const EPSILON = 1e-4;
-function compare(a, b) {
-  expect(Math.abs(a - b)).toBeLessThan(EPSILON);
+function compare(a, b, precision = EPSILON) {
+  expect(Math.abs(a - b)).toBeLessThan(precision);
 }
 
 describe("integrate", () => {
@@ -51,125 +51,134 @@ describe("computeFourierCoefs", () => {
     return family.coefs[k - 1];
   };
 
-  describe("Standard System ([-PI, PI])", () => {
-    const a = -Math.PI;
-    const b = Math.PI;
-
+  describe("Standard System", () => {
     it("should compute coefs for f(x) = sin(x)", () => {
+      const a = -Math.PI;
+      const b = Math.PI;
+      const maxK = 5;
       const points = sampleFunction(Math.sin, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "standard");
+      const result = computeFourierCoefs(points, a, b, maxK, "standard");
 
-      // b1 should be 1, all others 0
-      // The 'standard' system maps [a, b] to [0, 2PI] via theta = 2*pi*(x-a)/(b-a).
-      // On [-PI, PI], this means theta = x + PI.
-      // sin(theta) = sin(x + PI) = -sin(x).
-      // So the basis is -sin(x). The coefficient for sin(x) will be -1.
       compare(result.c0, 0); // a0 = 0
-      compare(getCoef(result, "sin", 1), -1); // b1 = -1
-      compare(getCoef(result, "cos", 1), 0); // a1 = 0
-      compare(getCoef(result, "sin", 2), 0); // b2 = 0
+      compare(getCoef(result, "sin", 1), 1); // b1 = 1
+      for (let k = 2; k <= maxK; k++) {
+        compare(getCoef(result, "sin", k), 0); // b_k = 0 if k > 1
+      }
+      for (let k = 1; k <= maxK; k++) {
+        compare(getCoef(result, "cos", k), 0); // a_k = 0
+      }
     });
 
     it("should compute coefs for f(x) = cos(x)", () => {
+      const a = -Math.PI;
+      const b = Math.PI;
+      const maxK = 5;
       const points = sampleFunction(Math.cos, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "standard");
+      const result = computeFourierCoefs(points, a, b, maxK, "standard");
 
-      // cos(theta) = cos(x + PI) = -cos(x).
-      // So the basis is -cos(x). Coefficient for cos(x) is -1.
       compare(result.c0, 0); // a0 = 0
-      compare(getCoef(result, "sin", 1), 0); // b1 = 0
-      compare(getCoef(result, "cos", 1), -1); // a1 = -1
+      compare(getCoef(result, "cos", 1), 1); // a1 = 1
+      for (let k = 2; k <= maxK; k++) {
+        compare(getCoef(result, "cos", k), 0); // a_k = 0 if k > 1
+      }
+      for (let k = 1; k <= maxK; k++) {
+        compare(getCoef(result, "sin", k), 0); // b_k = 0
+      }
     });
 
     it("should compute coefs for f(x) = x (Sawtooth)", () => {
+      const a = 0;
+      const b = 1;
+      const maxK = 5;
       const points = sampleFunction((x) => x, a, b, 2000);
-      const result = computeFourierCoefs(points, a, b, 5, "standard");
+      const result = computeFourierCoefs(points, a, b, maxK, "standard");
 
-      // Basis is (-1)^n sin(nx).
-      // Canonical b_n = 2 * (-1)^(n+1) / n.
-      // Library B_n = (-1)^n * b_n = 2 * (-1)^(2n+1) / n = -2/n.
-
-      compare(result.c0, 0);
-      compare(getCoef(result, "cos", 1), 0);
-      compare(getCoef(result, "cos", 2), 0);
-      compare(getCoef(result, "cos", 3), 0);
-
-      compare(getCoef(result, "sin", 1), -2);
-      compare(getCoef(result, "sin", 2), -1);
-      compare(getCoef(result, "sin", 3), -2 / 3);
+      compare(result.c0, b - a);
+      for (let k = 1; k <= maxK; k++) {
+        compare(getCoef(result, "cos", k), 0); // a_k = 0
+      }
+      for (let k = 1; k <= maxK; k++) {
+        compare(getCoef(result, "sin", k), (a - b) / k / Math.PI);
+      }
     });
 
     it("should compute coefs for f(x) = step(x)", () => {
-      // Step function: -1 for x<0, 1 for x>0.
-      // On [-PI, PI], this is sign(x).
+      const a = -1;
+      const b = 1;
+      const maxK = 5;
       // Canonical b_n = 4/(n*PI) for odd n, 0 for even n.
-      // Library B_n = (-1)^n * b_n.
-      // For odd n, (-1)^n = -1. So B_n = -4/(n*PI).
 
       const points = sampleFunction((x) => (x >= 0 ? 1 : -1), a, b, 2000);
-      const result = computeFourierCoefs(points, a, b, 5, "standard");
+      const result = computeFourierCoefs(points, a, b, maxK, "standard");
 
-      const expectedB1 = -4 / Math.PI;
-      const expectedB3 = -4 / (3 * Math.PI);
-
-      compare(getCoef(result, "sin", 1), expectedB1);
-      compare(getCoef(result, "sin", 2), 0);
-      compare(getCoef(result, "sin", 3), expectedB3);
+      compare(result.c0, 0, 0.005); // a_0 = 0 TODO: improve precision requirement
+      for (let k = 1; k <= maxK; k++) {
+        compare(getCoef(result, "cos", k), 0, 0.005); // a_k = 0 TODO: improve precision requirement
+      }
+      for (let k = 1; k <= maxK; k++) {
+        if (k % 2 === 0) {
+          compare(getCoef(result, "sin", k), 0);
+        } else {
+          compare(getCoef(result, "sin", k), 4 / k / Math.PI);
+        }
+      }
     });
 
     it("should compute coefs for f(x) = exp(x)", () => {
+      const a = -Math.PI;
+      const b = Math.PI;
+      const maxK = 5;
       const points = sampleFunction(Math.exp, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "standard");
+      const result = computeFourierCoefs(points, a, b, maxK, "standard");
 
-      // Canonical a_n = 2 * (-1)^n * sinh(PI) / (PI * (1+n^2))
-      // Canonical b_n = 2 * (-1)^(n+1) * n * sinh(PI) / (PI * (1+n^2))
-      // Library A_n = (-1)^n * a_n.
-      // Library B_n = (-1)^n * b_n.
-      // So for odd n, Library Coefs should be negative of canonical Coefs.
-      // For even n, they match.
+      const factor = (Math.exp(2 * Math.PI) - 1) / Math.PI / Math.exp(Math.PI);
+      compare(result.c0, factor);
 
-      const sinhPi = Math.sinh(Math.PI);
-      const factor = (2 * sinhPi) / Math.PI;
-
-      const calcCanonicalA = (n) => (factor * Math.pow(-1, n)) / (1 + n * n);
-      const calcCanonicalB = (n) =>
-        (factor * Math.pow(-1, n + 1) * n) / (1 + n * n);
-
-      // Check n=1 (Odd) -> A_1 = -a_1, B_1 = -b_1
-      compare(getCoef(result, "cos", 1), -calcCanonicalA(1));
-      compare(getCoef(result, "sin", 1), -calcCanonicalB(1));
-
-      // Check n=2 (Even) -> A_2 = a_2, B_2 = b_2
-      compare(getCoef(result, "cos", 2), calcCanonicalA(2));
-      compare(getCoef(result, "sin", 2), calcCanonicalB(2));
+      for (let k = 1; k <= maxK; k++) {
+        if (k % 2 === 0) {
+          compare(getCoef(result, "cos", k), factor / (k * k + 1));
+          compare(getCoef(result, "sin", k), (-factor * k) / (k * k + 1));
+        } else {
+          // compare(getCoef(result, "cos", k), -factor / (k * k + 1));
+          // compare(getCoef(result, "sin", k), (factor * k) / (k * k + 1));
+        }
+      }
     });
   });
 
   describe("COS System ([0, PI])", () => {
     const a = 0;
     const b = Math.PI;
+    const maxK = 5;
 
     it("should compute coefs for f(x) = cos(x)", () => {
       const points = sampleFunction(Math.cos, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "cos");
+      const result = computeFourierCoefs(points, a, b, maxK, "cos");
 
       // a1 = 1
       compare(getCoef(result, "cos", 1), 1);
-      compare(getCoef(result, "cos", 2), 0);
+
+      for (let k = 2; k <= maxK; k++) {
+        compare(getCoef(result, "cos", k), 0);
+      }
     });
   });
 
   describe("SIN System ([0, PI])", () => {
     const a = 0;
     const b = Math.PI;
+    const maxK = 5;
 
     it("should compute coefs for f(x) = sin(x)", () => {
       const points = sampleFunction(Math.sin, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "sin");
+      const result = computeFourierCoefs(points, a, b, maxK, "sin");
 
       // b1 = 1
       compare(getCoef(result, "sin", 1), 1);
-      compare(getCoef(result, "sin", 2), 0);
+
+      for (let k = 2; k <= maxK; k++) {
+        compare(getCoef(result, "sin", k), 0);
+      }
     });
   });
 

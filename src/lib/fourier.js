@@ -1,6 +1,6 @@
 /**
  * Fourier series computation utilities
- * 
+ *
  * Architecture: Each basis system is defined in the SYSTEMS registry with:
  * - computeC0: computes the constant term
  * - evalC0: how the constant term contributes to the approximation sum
@@ -110,7 +110,7 @@ export function oversample(points, a, b, k, minPointsPerPeriod = 10) {
       const y =
         points[j - 1][1] +
         ((x - points[j - 1][0]) * (points[j][1] - points[j - 1][1])) /
-        (points[j][0] - points[j - 1][0]);
+          (points[j][0] - points[j - 1][0]);
       interpolatedPoints.push([x, y]);
     }
     return interpolatedPoints;
@@ -147,7 +147,7 @@ function computeTrigCoef(curve, a, b, k, trigFn, multiplier) {
   const oversampled = oversample(curve, a, b, effK);
 
   const productCurve = oversampled.map((p) => {
-    const theta = (multiplier * k * Math.PI * (p[0] - a)) / (b - a);
+    const theta = (multiplier * k * Math.PI * p[0]) / (b - a);
     return [p[0], p[1] * trigFn(theta)];
   });
 
@@ -224,14 +224,16 @@ export const SYSTEMS = {
       {
         id: "cos",
         coefPrefix: "a",
-        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.cos, 2),
-        evalTerm: (k, x, a, b) => Math.cos((2 * k * Math.PI * (x - a)) / (b - a)),
+        computeCoef: (curve, a, b, k) =>
+          computeTrigCoef(curve, a, b, k, Math.cos, 2),
+        evalTerm: (k, x, a, b) => Math.cos((2 * k * Math.PI * x) / (b - a)),
       },
       {
         id: "sin",
         coefPrefix: "b",
-        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.sin, 2),
-        evalTerm: (k, x, a, b) => Math.sin((2 * k * Math.PI * (x - a)) / (b - a)),
+        computeCoef: (curve, a, b, k) =>
+          computeTrigCoef(curve, a, b, k, Math.sin, 2),
+        evalTerm: (k, x, a, b) => Math.sin((2 * k * Math.PI * x) / (b - a)),
       },
     ],
   },
@@ -244,8 +246,9 @@ export const SYSTEMS = {
       {
         id: "cos",
         coefPrefix: "a",
-        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.cos, 1),
-        evalTerm: (k, x, a, b) => Math.cos((k * Math.PI * (x - a)) / (b - a)),
+        computeCoef: (curve, a, b, k) =>
+          computeTrigCoef(curve, a, b, k, Math.cos, 1),
+        evalTerm: (k, x, a, b) => Math.cos((k * Math.PI * x) / (b - a)),
       },
     ],
   },
@@ -258,8 +261,9 @@ export const SYSTEMS = {
       {
         id: "sin",
         coefPrefix: "b",
-        computeCoef: (curve, a, b, k) => computeTrigCoef(curve, a, b, k, Math.sin, 1),
-        evalTerm: (k, x, a, b) => Math.sin((k * Math.PI * (x - a)) / (b - a)),
+        computeCoef: (curve, a, b, k) =>
+          computeTrigCoef(curve, a, b, k, Math.sin, 1),
+        evalTerm: (k, x, a, b) => Math.sin((k * Math.PI * x) / (b - a)),
       },
     ],
   },
@@ -296,7 +300,7 @@ export function computeFourierCoefs(curve, a, b, maxK, systemId) {
     families: system.families.map((fam) => ({
       id: fam.id,
       coefs: Array.from({ length: maxK }, (_, i) =>
-        fam.computeCoef(curve, a, b, i + 1)
+        fam.computeCoef(curve, a, b, i + 1),
       ),
     })),
     domain: [a, b],
