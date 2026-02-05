@@ -163,29 +163,34 @@ function computeTrigCoef(curve, a, b, k, trigFn, multiplier, offset = 0) {
  * Compute Chebyshev coefficient Tk using theta-domain integration
  */
 function computeChebyshevCoef(curve, a, b, k) {
-  const finePoints = oversample(curve, a, b, Math.max(k, 10));
   const mid = (a + b) / 2;
   const half = (b - a) / 2;
 
+  const steps = Math.max(200, k * 20); // Scale with k
   const thetaPoints = [];
-  const steps = 500;
+
+  const cleanedCurve = cleanCurve(curve);
+  let curveIdx = cleanedCurve.length - 1; // Start from the end
+
   for (let i = 0; i <= steps; i++) {
     const theta = (i / steps) * Math.PI;
-    const x = mid + half * Math.cos(theta);
+    const x = mid + half * Math.cos(theta); // Decreases from b to a
+
+    // Fast backward search (x is monotonically decreasing)
+    while (curveIdx > 0 && cleanedCurve[curveIdx - 1][0] > x) {
+      curveIdx--;
+    }
 
     // Interpolate y at x
-    let y = 0;
-    const idx = finePoints.findIndex((p) => p[0] >= x);
-    if (idx === -1) y = finePoints[finePoints.length - 1][1];
-    else if (idx === 0) y = finePoints[0][1];
-    else {
-      y = interpolate(
-        x,
-        finePoints[idx - 1][0],
-        finePoints[idx - 1][1],
-        finePoints[idx][0],
-        finePoints[idx][1],
-      );
+    let y;
+    if (curveIdx === 0) {
+      y = cleanedCurve[0][1];
+    } else if (curveIdx >= cleanedCurve.length - 1) {
+      y = cleanedCurve[cleanedCurve.length - 1][1];
+    } else {
+      const [x1, y1] = cleanedCurve[curveIdx];
+      const [x2, y2] = cleanedCurve[curveIdx + 1];
+      y = y1 + ((x - x1) * (y2 - y1)) / (x2 - x1);
     }
 
     thetaPoints.push([theta, y * Math.cos(k * theta)]);
