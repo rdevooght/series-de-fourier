@@ -355,6 +355,7 @@
                         { points: approxPoints, color: "#2563eb", width: 2 },
                     ]}
                     title=""
+                    vertical_lines={[a, b]}
                 />
 
                 <div class="coef-constant">
@@ -394,6 +395,7 @@
                         yDomain={[-2, 2]}
                         lines={getTermsFunctions(fi, familyConfig)}
                         title={familyConfig.plotTitle}
+                        vertical_lines={[a, b]}
                     />
 
                     <div class="results">

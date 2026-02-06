@@ -8,6 +8,7 @@
     export let yDomain = [-2, 8];
     export let lines = []; // Array of { points, color, label? }
     export let title = "";
+    export let vertical_lines = []; // Array of x coordinates. A vertical line is plotted at each point
 
     const margin = { top: 30, right: 30, bottom: 40, left: 50 };
     let svg;
@@ -120,6 +121,21 @@
                 .attr("stroke-dasharray", l.dashed ? "2,2" : null)
                 .attr("d", line);
         }
+
+        // Vertical lines
+        svgEl
+            .append("g")
+            .attr("class", "vertical-lines")
+            .selectAll("line")
+            .data(vertical_lines)
+            .join("line")
+            .attr("x1", (d) => xScale(d) + 0.5)
+            .attr("x2", (d) => xScale(d) + 0.5)
+            .attr("y1", yScale(yDomain[0]))
+            .attr("y2", yScale(yDomain[1]))
+            .style("stroke", "#ef4444")
+            .style("stroke-width", 2)
+            .style("stroke-dasharray", "5,5");
     }
 
     onMount(draw);

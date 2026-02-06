@@ -1,6 +1,6 @@
 ## 1. Architecture Générale
 
-Basé sur Svelte 5 + D3.js
+Basé sur Svelte + D3.js
 
 ### Structure des Répertoires
 - `src/`
