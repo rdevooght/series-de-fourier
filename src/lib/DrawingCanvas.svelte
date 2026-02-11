@@ -142,7 +142,12 @@
         ) {
             const domainX = xScale.invert(x);
             const domainY = yScale.invert(y);
-            _points.push([domainX, domainY]);
+            if (
+                (_points && _points.length === 0) ||
+                _points[_points.length - 1][0] < domainX
+            ) {
+                _points.push([domainX, domainY]); // only add new point if it's on the right of the last point
+            }
             render();
         }
     }
