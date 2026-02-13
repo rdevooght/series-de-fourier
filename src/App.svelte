@@ -1,6 +1,7 @@
 <script>
     import DrawingCanvas from "./lib/DrawingCanvas.svelte";
     import FunctionPlot from "./lib/FunctionPlot.svelte";
+    import BarChart from "./lib/BarChart.svelte";
     import Footer from "./lib/Footer.svelte";
     import {
         computeFourierCoefs,
@@ -240,6 +241,21 @@
             setAllFamilyCoefs(familyIndex, true);
         }
     }
+    /**
+     * Determines the yDomain to be passed to the frequency BarCharts
+     */
+    function getFrequencyDomain() {
+        // find min and max
+        let allCoefs = [];
+        for (let fi = 0; fi < currentSystemConfig.families.length; fi++) {
+            allCoefs.push(...coefs.families[fi].coefs);
+        }
+        const min = Math.min(...allCoefs);
+        const max = Math.max(...allCoefs);
+
+        const range = Math.ceil(Math.max(Math.abs(min), Math.abs(max)));
+        return [min < 0 ? -range : 0, max < 0 ? 0 : range];
+    }
 </script>
 
 <main>
@@ -398,6 +414,17 @@
                         title={familyConfig.plotTitle}
                         vertical_lines={[a, b]}
                     />
+
+                    <div style="margin-top: 1rem;">
+                        <BarChart
+                            data={coefs.families[fi].coefs}
+                            labels={coefs.families[fi].coefs.map(
+                                (_, i) => i + 1,
+                            )}
+                            height={150}
+                            yDomain={getFrequencyDomain()}
+                        />
+                    </div>
 
                     <div class="results">
                         <div class="coefs-display">
