@@ -423,6 +423,7 @@
                             )}
                             height={150}
                             yDomain={getFrequencyDomain()}
+                            active={coefsActivity.families[fi]}
                         />
                     </div>
 

@@ -8,16 +8,68 @@
     export let color = "#3b82f6"; // Default blue
     export let yDomain = null; // Optional fixed domain [min, max]
     export let barWidthRatio = 0.8; // default ratio
+    export let active = null; // Array of booleans, matches data length
 
     let svg;
     let width;
     const margin = { top: 20, right: 30, bottom: 25, left: 40 };
+
+    // Unique ID for the pattern to avoid conflicts
+    const patternId = `stripe-pattern-${Math.random().toString(36).substr(2, 9)}`;
+    const maskId = `stripe-mask-${Math.random().toString(36).substr(2, 9)}`;
 
     function draw() {
         if (!svg || !data) return;
 
         const svgEl = d3.select(svg);
         svgEl.selectAll("*").remove();
+
+        // Re-add defs
+        const defs = svgEl.append("defs");
+
+        const pattern = defs
+            .append("pattern")
+            .attr("id", patternId)
+            .attr("patternUnits", "userSpaceOnUse")
+            .attr("width", 4)
+            .attr("height", 4)
+            .attr("patternTransform", "rotate(45)");
+
+        pattern
+            .append("rect")
+            .attr("width", 2)
+            .attr("height", 4)
+            .attr("transform", "translate(0,0)")
+            .attr("fill", "white");
+
+        const maskPattern = defs
+            .append("pattern")
+            .attr("id", `${patternId}-mask-pat`)
+            .attr("patternUnits", "userSpaceOnUse")
+            .attr("width", 8)
+            .attr("height", 8)
+            .attr("patternTransform", "rotate(45)");
+
+        // Background white (visible)
+        maskPattern
+            .append("rect")
+            .attr("width", 8)
+            .attr("height", 8)
+            .attr("fill", "white");
+
+        // Foreground black stripes (invisible holes)
+        maskPattern
+            .append("rect")
+            .attr("width", 3)
+            .attr("height", 8)
+            .attr("fill", "black");
+
+        const mask = defs.append("mask").attr("id", maskId);
+
+        mask.append("rect")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("fill", `url(#${patternId}-mask-pat)`);
 
         // Ensure width is valid before drawing
         if (!width) return;
@@ -93,6 +145,10 @@
             .join("path")
             .attr("class", "bar")
             .attr("fill", (d, i) => (Array.isArray(color) ? color[i] : color))
+            .attr("mask", (d, i) =>
+                active && !active[i] ? `url(#${maskId})` : null,
+            )
+            .style("opacity", (d, i) => (active && !active[i] ? 0.8 : 1)) // Reduce opacity too
             .attr("d", (d, i) => {
                 const x = xScale(i) + offset;
                 const yZero = yScale(0);
@@ -148,7 +204,7 @@
     }
 
     onMount(draw);
-    $: if (svg && width && data) (draw(), data, labels, yDomain, color);
+    $: if (svg && width && data) (draw(), data, labels, yDomain, color, active);
 </script>
 
 <div class="plot-container" bind:clientWidth={width}>
