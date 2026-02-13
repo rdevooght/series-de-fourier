@@ -56,22 +56,23 @@
                 },
             ],
         },
-        chebyshev: {
-            id: "chebyshev",
-            label: "Tchebychev",
-            families: [
-                {
-                    id: "T",
-                    title: "Polynômes de Tchebychev Tₖ",
-                    plotTitle: "aₖ · Tₖ(x)",
-                    coefPrefix: "T",
-                },
-            ],
-        },
+        // chebyshev: {
+        //     id: "chebyshev",
+        //     label: "Tchebychev",
+        //     families: [
+        //         {
+        //             id: "T",
+        //             title: "Polynômes de Tchebychev Tₖ",
+        //             plotTitle: "aₖ · Tₖ(x)",
+        //             coefPrefix: "T",
+        //         },
+        //     ],
+        // },
     };
 
     // Order for display in UI
-    const SYSTEM_ORDER = ["standard", "sin", "cos", "chebyshev"];
+    // const SYSTEM_ORDER = ["standard", "sin", "cos", "chebyshev"];
+    const SYSTEM_ORDER = ["standard", "sin", "cos"];
 
     // ========================================================================
     // Domain and general parameters
