@@ -9,6 +9,7 @@
         sampleFunction,
         getSystem,
     } from "./lib/fourier.js";
+    import { togglePlay, updateSound, stopSound } from "./lib/sound.js";
 
     // ========================================================================
     // Systems Configuration
@@ -141,6 +142,25 @@
             return computeFourierCoefs(drawnPoints, a, b, maxK, basisType);
         } else {
             return null;
+        }
+    });
+
+    // Sound state
+    let isPlaying = $state(false);
+
+    function handleTogglePlay() {
+        if (coefs) {
+            isPlaying = togglePlay(coefs, coefsActivity);
+        }
+    }
+
+    // Update sound when coefficients change if playing
+    $effect(() => {
+        if (isPlaying && coefs) {
+            updateSound(coefs, coefsActivity);
+        } else if (!coefs && isPlaying) {
+            stopSound();
+            isPlaying = false;
         }
     });
 
@@ -363,7 +383,64 @@
 
         {#if coefs}
             <section class="plots">
-                <h2>Approximation de Fourier</h2>
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between;"
+                >
+                    <h2>Approximation de Fourier</h2>
+                    {#if ["standard", "cos", "sin"].includes(basisType)}
+                        <button
+                            class="icon-btn"
+                            onclick={handleTogglePlay}
+                            aria-label={isPlaying
+                                ? "Arrêter le son"
+                                : "Jouer le son"}
+                            title={isPlaying
+                                ? "Arrêter le son"
+                                : "Jouer le son"}
+                        >
+                            {#if isPlaying}
+                                <!-- Stop Icon -->
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    ><rect
+                                        x="4"
+                                        y="4"
+                                        width="16"
+                                        height="16"
+                                        rx="2"
+                                        ry="2"
+                                    ></rect></svg
+                                >
+                            {:else}
+                                <!-- Play Icon -->
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    ><polygon
+                                        points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+                                    ></polygon><path
+                                        d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+                                    ></path></svg
+                                >
+                            {/if}
+                        </button>
+                    {/if}
+                </div>
                 <FunctionPlot
                     height={350}
                     {xDomain}
@@ -480,8 +557,8 @@
 <style>
     :global(body) {
         margin: 0;
-        font-family:
-            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            sans-serif;
         background: #f8fafc;
     }
 
@@ -666,6 +743,21 @@
     button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+
+    .icon-btn {
+        padding: 0.5rem;
+        background: transparent;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 0;
+    }
+
+    .icon-btn:hover {
+        background: #f1f5f9;
+        color: #2563eb;
     }
 
     .bulk-actions {
