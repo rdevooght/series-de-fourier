@@ -214,14 +214,14 @@ describe("computeFourierCoefs", () => {
   });
 
   describe("Chebyshev System ([-1, 1])", () => {
-    const a = -1;
-    const b = 1;
-
     // Chebyshev polynomials: T0=1, T1=x, T2=2x^2-1
 
     it("should compute coefs for f(x) = 1 (T0)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 2;
       const points = sampleFunction((x) => 1, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "chebyshev");
+      const result = computeFourierCoefs(points, a, b, maxK, "chebyshev");
 
       // c0 should be 1 (Note: computeC0 returns the coefficient itself)
       compare(result.c0, 1);
@@ -229,8 +229,11 @@ describe("computeFourierCoefs", () => {
     });
 
     it("should compute coefs for f(x) = x (T1)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 3;
       const points = sampleFunction((x) => x, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "chebyshev");
+      const result = computeFourierCoefs(points, a, b, maxK, "chebyshev");
 
       compare(result.c0, 0);
       compare(getCoef(result, "T", 1), 1); // T1 = x
@@ -238,12 +241,109 @@ describe("computeFourierCoefs", () => {
     });
 
     it("should compute coefs for f(x) = 2x^2 - 1 (T2)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 4;
       const points = sampleFunction((x) => 2 * x * x - 1, a, b, 1000);
-      const result = computeFourierCoefs(points, a, b, 5, "chebyshev");
+      const result = computeFourierCoefs(points, a, b, maxK, "chebyshev");
 
       compare(result.c0, 0);
       compare(getCoef(result, "T", 1), 0, 0.005);
       compare(getCoef(result, "T", 2), 1, 0.005); // T2 TODO: improve precision requirement
+    });
+
+    it("should compute coefs for f(x) = |x|", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 4;
+      const points = sampleFunction((x) => Math.abs(x), a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "chebyshev");
+
+      compare(result.c0, 2 / Math.PI);
+      compare(getCoef(result, "T", 1), 0, 0.005);
+      compare(getCoef(result, "T", 2), 4 / 3 / Math.PI, 0.005); // T2 TODO: improve precision requirement
+      compare(getCoef(result, "T", 3), 0, 0.005);
+    });
+
+    it("should compute coefs for f(x) = |2(x-0.5)| (between 0 and 1)", () => {
+      const a = 0;
+      const b = 1;
+      const maxK = 4;
+      const points = sampleFunction((x) => Math.abs((x - 0.5) * 2), a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "chebyshev");
+
+      compare(result.c0, 2 / Math.PI);
+      compare(getCoef(result, "T", 1), 0, 0.005);
+      compare(getCoef(result, "T", 2), 4 / 3 / Math.PI, 0.005); // T2 TODO: improve precision requirement
+      compare(getCoef(result, "T", 3), 0, 0.005);
+    });
+  });
+
+  describe("Legendre System ([-1, 1])", () => {
+    // Legendre polynomials: P0=1, P1=x, P2=(3x^2-1)/2, P3=(5x^3-3x)/2
+
+    it("should compute coefs for f(x) = 1 (P0)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 2;
+      const points = sampleFunction((x) => 1, a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "legendre");
+
+      // c0 should be 1 (Note: computeC0 returns the coefficient itself)
+      compare(result.c0, 1);
+      compare(getCoef(result, "P", 1), 0);
+      compare(getCoef(result, "P", 2), 0);
+    });
+
+    it("should compute coefs for f(x) = x (P1)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 3;
+      const points = sampleFunction((x) => x, a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "legendre");
+
+      compare(result.c0, 0);
+      compare(getCoef(result, "P", 1), 1); // T1 = x
+      compare(getCoef(result, "P", 2), 0);
+    });
+
+    it("should compute coefs for f(x) = (3x^2-1)/2 (P2)", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 4;
+      const points = sampleFunction((x) => (3 * x * x - 1) / 2, a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "legendre");
+
+      compare(result.c0, 0);
+      compare(getCoef(result, "P", 1), 0, 0.005);
+      compare(getCoef(result, "P", 2), 1, 0.005); // T2 TODO: improve precision requirement
+      compare(getCoef(result, "P", 3), 0, 0.005);
+    });
+
+    it("should compute coefs for f(x) = |x|", () => {
+      const a = -1;
+      const b = 1;
+      const maxK = 4;
+      const points = sampleFunction((x) => Math.abs(x), a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "legendre");
+
+      compare(result.c0, 0.5);
+      compare(getCoef(result, "P", 1), 0, 0.005);
+      compare(getCoef(result, "P", 2), 5 / 8, 0.005); // T2 TODO: improve precision requirement
+      compare(getCoef(result, "P", 3), 0, 0.005);
+    });
+
+    it("should compute coefs for f(x) = |2(x-0.5)| (between 0 and 1)", () => {
+      const a = 0;
+      const b = 1;
+      const maxK = 4;
+      const points = sampleFunction((x) => Math.abs((x - 0.5) * 2), a, b, 1000);
+      const result = computeFourierCoefs(points, a, b, maxK, "legendre");
+
+      compare(result.c0, 0.5);
+      compare(getCoef(result, "P", 1), 0, 0.005);
+      compare(getCoef(result, "P", 2), 5 / 8, 0.005); // T2 TODO: improve precision requirement
+      compare(getCoef(result, "P", 3), 0, 0.005);
     });
   });
 });

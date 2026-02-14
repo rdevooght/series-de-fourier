@@ -10,6 +10,8 @@
     export let title = "";
     export let vertical_lines = []; // Array of x coordinates. A vertical line is plotted at each point
 
+    console.log(lines);
+
     const margin = { top: 30, right: 30, bottom: 40, left: 50 };
     let svg;
 
@@ -114,7 +116,7 @@
             if (!l.points || l.points.length < 2) continue;
             svgEl
                 .append("path")
-                .datum(l.points)
+                .datum(l.points.filter((p) => p[1] !== null))
                 .attr("fill", "none")
                 .attr("stroke", l.color || "#2563eb")
                 .attr("stroke-width", l.width || 2)

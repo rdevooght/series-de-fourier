@@ -58,23 +58,34 @@
                 },
             ],
         },
-        // chebyshev: {
-        //     id: "chebyshev",
-        //     label: "Tchebychev",
-        //     families: [
-        //         {
-        //             id: "T",
-        //             title: "Polynômes de Tchebychev Tₖ",
-        //             plotTitle: "aₖ · Tₖ(x)",
-        //             coefPrefix: "T",
-        //         },
-        //     ],
-        // },
+        chebyshev: {
+            id: "chebyshev",
+            label: "Tchebychev",
+            families: [
+                {
+                    id: "T",
+                    title: "Polynômes de Tchebychev Tₖ",
+                    plotTitle: "aₖ · Tₖ(x)",
+                    coefPrefix: "T",
+                },
+            ],
+        },
+        legendre: {
+            id: "legendre",
+            label: "Legendre",
+            families: [
+                {
+                    id: "P",
+                    title: "Polynômes de Legendre Pₖ",
+                    plotTitle: "aₖ · Pₖ(x)",
+                    coefPrefix: "P",
+                },
+            ],
+        },
     };
 
     // Order for display in UI
-    // const SYSTEM_ORDER = ["standard", "sin", "cos", "chebyshev"];
-    const SYSTEM_ORDER = ["standard", "sin", "cos"];
+    const SYSTEM_ORDER = Object.keys(SYSTEMS_CONFIG);
 
     // ========================================================================
     // Domain and general parameters
@@ -213,7 +224,14 @@
         const famActivity = coefsActivity.families[familyIndex] || [];
 
         return famCoefs.map((c, i) => {
-            const func = (x) => c * famDef.evalTerm(i + 1, x, a, b);
+            const func = (x) => {
+                let term = famDef.evalTerm(i + 1, x, a, b);
+                if (term === null) {
+                    return null;
+                } else {
+                    return c * term;
+                }
+            };
 
             return {
                 points: sampleFunction(func, xDomain[0], xDomain[1], 200),
@@ -557,8 +575,8 @@
 <style>
     :global(body) {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            sans-serif;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: #f8fafc;
     }
 

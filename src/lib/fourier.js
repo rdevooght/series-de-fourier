@@ -218,6 +218,126 @@ function evalChebyshevTerm(k, x, a, b) {
 }
 
 // ============================================================================
+// Legendre coefficient computation
+// ============================================================================
+
+/**
+ * Creates a function to evaluate Legendre polynomial Pn at x.
+ * It lazily computes the polynomial coefficients using the recurrence relation.
+ * It caches the values at regular intervals then uses linear interpolation to evaluate.
+ *
+ * @returns a function (n, x) => Pn(x)
+ */
+function createLegendreEvaluator(grid_size, domain) {
+  const GRID_SIZE = grid_size;
+  const X_MIN = domain[0];
+  const X_MAX = domain[1];
+  const DX = (X_MAX - X_MIN) / (GRID_SIZE - 1);
+
+  // Precompute grid
+  const xGrid = new Float64Array(GRID_SIZE);
+  for (let i = 0; i < GRID_SIZE; i++) {
+    xGrid[i] = X_MIN + i * DX;
+  }
+
+  // Cache: P[n] = Float64Array of values on grid
+  const P = [];
+
+  // P0
+  const P0 = new Float64Array(GRID_SIZE);
+  P0.fill(1.0);
+  P[0] = P0;
+
+  // P1
+  const P1 = new Float64Array(GRID_SIZE);
+  for (let i = 0; i < GRID_SIZE; i++) {
+    P1[i] = xGrid[i];
+  }
+  P[1] = P1;
+
+  let maxComputedN = 1;
+
+  function computeUpTo(nTarget) {
+    if (nTarget <= maxComputedN) return;
+
+    for (let n = maxComputedN; n < nTarget; n++) {
+      const Pnm1 = P[n - 1];
+      const Pn = P[n];
+
+      const Pnp1 = new Float64Array(GRID_SIZE);
+      const a = (2 * n + 1) / (n + 1);
+      const b = n / (n + 1);
+
+      for (let i = 0; i < GRID_SIZE; i++) {
+        Pnp1[i] = a * xGrid[i] * Pn[i] - b * Pnm1[i];
+      }
+
+      P[n + 1] = Pnp1;
+    }
+
+    maxComputedN = nTarget;
+  }
+
+  function interpolate(n, x) {
+    if (x <= X_MIN) return P[n][0];
+    if (x >= X_MAX) return P[n][GRID_SIZE - 1];
+
+    const t = (x - X_MIN) / DX;
+    const i = Math.floor(t);
+    const frac = t - i;
+
+    const y0 = P[n][i];
+    const y1 = P[n][i + 1];
+
+    return y0 + frac * (y1 - y0);
+  }
+
+  return function Pn(n, x) {
+    if (n < 0 || !Number.isInteger(n)) {
+      throw new Error("n must be a non-negative integer");
+    }
+
+    if (n > maxComputedN) {
+      computeUpTo(n);
+    }
+
+    return interpolate(n, x);
+  };
+}
+
+const Pn = createLegendreEvaluator(2000, [-1.5, 1.5]);
+
+/**
+ * Compute Legendre coefficient Pk
+ */
+function computeLegendreCoef(curve, a, b, k) {
+  const mid = (a + b) / 2;
+  const half = (b - a) / 2;
+
+  const oversampled = oversample(curve, a, b, k);
+
+  const productCurve = oversampled.map((p) => {
+    const xNorm = (p[0] - mid) / half;
+    return [xNorm, p[1] * Pn(k, xNorm)];
+  });
+
+  return (integrate(productCurve, -1, 1) * (2 * k + 1)) / 2;
+}
+
+/**
+ * Evaluate Legendre polynomial Pn at x (where x is in original domain [a, b])
+ */
+function evalLegendreTerm(k, x, a, b) {
+  const mid = (a + b) / 2;
+  const half = (b - a) / 2;
+  const xNorm = (x - mid) / half;
+  if (xNorm < -1.5 || xNorm > 1.5) {
+    return null;
+  }
+  return Pn(k, xNorm);
+}
+
+// ============================================================================
 // SYSTEMS Registry
 // ============================================================================
 
@@ -287,6 +407,20 @@ export const SYSTEMS = {
       },
     ],
   },
+
+  legendre: {
+    id: "legendre",
+    computeC0: (curve, a, b) => computeLegendreCoef(curve, a, b, 0),
+    evalC0: (c0) => c0,
+    families: [
+      {
+        id: "P",
+        coefPrefix: "P",
+        computeCoef: (curve, a, b, k) => computeLegendreCoef(curve, a, b, k),
+        evalTerm: (k, x, a, b) => evalLegendreTerm(k, x, a, b),
+      },
+    ],
+  },
 };
 
 // ============================================================================
@@ -321,16 +455,21 @@ export function fourierApprox(coefs) {
   const [a, b] = coefs.domain;
 
   return function (x) {
+    let out_of_range = false;
     let y = system.evalC0(coefs.c0);
 
     coefs.families.forEach((fam, fi) => {
       const famDef = system.families[fi];
       fam.coefs.forEach((c, k) => {
-        y += c * famDef.evalTerm(k + 1, x, a, b);
+        let term = famDef.evalTerm(k + 1, x, a, b);
+        if (term === null) {
+          out_of_range = true;
+        }
+        y += c * term;
       });
     });
 
-    return y;
+    return out_of_range ? null : y;
   };
 }
 
