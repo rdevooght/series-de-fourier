@@ -9,7 +9,7 @@
         max-width: 700px;
         margin: 10px auto;
         width: 100%;
-        padding-top: 5px;
+        padding: 5px 10px;
     }
     footer::before {
         content: "";

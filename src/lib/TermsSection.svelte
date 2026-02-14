@@ -38,7 +38,9 @@
             <div class="chart-wrap">
                 <BarChart
                     data={coefs.families[familyIndex].coefs}
-                    labels={coefs.families[familyIndex].coefs.map((_, index) => index + 1)}
+                    labels={coefs.families[familyIndex].coefs.map(
+                        (_, index) => index + 1,
+                    )}
                     height={150}
                     yDomain={getFrequencyDomain()}
                     active={coefsActivity.families[familyIndex]}
@@ -50,11 +52,15 @@
                     {#each coefs.families[familyIndex].coefs as coef, coefIndex}
                         <label
                             class="coef"
-                            class:active={coefsActivity.families[familyIndex]?.[coefIndex]}
+                            class:active={coefsActivity.families[familyIndex]?.[
+                                coefIndex
+                            ]}
                         >
                             <input
                                 type="checkbox"
-                                checked={coefsActivity.families[familyIndex][coefIndex]}
+                                checked={coefsActivity.families[familyIndex][
+                                    coefIndex
+                                ]}
                                 onchange={(event) =>
                                     onToggleFamilyCoef(
                                         familyIndex,
@@ -62,7 +68,9 @@
                                         event.currentTarget.checked,
                                     )}
                             />
-                            <span class="coef-name">{familyConfig.coefPrefix}{coefIndex + 1}</span>
+                            <span class="coef-name"
+                                >{familyConfig.coefPrefix}{coefIndex + 1}</span
+                            >
                             <span class="coef-value">{coef.toFixed(3)}</span>
                         </label>
                     {/each}
@@ -125,7 +133,7 @@
     h2 {
         color: #334155;
         font-size: 1.1rem;
-        margin: 1.5rem 0 0.75rem;
+        margin: 1.5rem 10px 0.75rem;
     }
 
     .chart-wrap {

@@ -69,7 +69,7 @@
 <style>
     .controls {
         background: white;
-        padding: 1rem 1.25rem;
+        padding: 10px;
         border-radius: 8px;
         border: 1px solid #e5e7eb;
         margin-bottom: 1.5rem;

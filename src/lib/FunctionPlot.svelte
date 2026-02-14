@@ -12,7 +12,7 @@
 
     console.log(lines);
 
-    const margin = { top: 30, right: 30, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 20, bottom: 40, left: 40 };
     let svg;
 
     function draw() {

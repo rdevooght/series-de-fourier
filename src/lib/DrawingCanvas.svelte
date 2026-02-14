@@ -9,7 +9,7 @@
     export let b = 8;
     export let points = []; // Points that are sync'ed with the parent module
 
-    const margin = { top: 30, right: 30, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 20, bottom: 40, left: 40 };
 
     let width;
     let canvas;

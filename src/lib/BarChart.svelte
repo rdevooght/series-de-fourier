@@ -12,7 +12,7 @@
 
     let svg;
     let width;
-    const margin = { top: 20, right: 30, bottom: 25, left: 40 };
+    const margin = { top: 20, right: 20, bottom: 25, left: 40 };
 
     // Unique ID for the pattern to avoid conflicts
     const patternId = `stripe-pattern-${Math.random().toString(36).substr(2, 9)}`;

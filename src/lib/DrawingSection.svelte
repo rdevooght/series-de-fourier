@@ -14,17 +14,21 @@
 </script>
 
 <section class="drawing-section">
-    <div class="control-group">
+    <div class="control-group not-boxed">
         <div>
             <h2>Dessinez votre fonction</h2>
-            <p>Tracez entre les lignes rouges (a = {a.toFixed(2)} et b = {b.toFixed(2)})</p>
+            <p>
+                Tracez entre les lignes rouges (a = {a.toFixed(2)} et b = {b.toFixed(
+                    2,
+                )})
+            </p>
         </div>
         {#if drawnPoints.length > 1}
             <button class="clear-btn" onclick={onClear}>Effacer</button>
         {/if}
     </div>
 
-    <div id="function-picker">
+    <div id="function-picker" class="not-boxed">
         <p>Ou choisissez parmi les fonctions suivantes :</p>
         <ul>
             {#each sampleFunctions as sampleFunction}
@@ -55,6 +59,10 @@
         color: #334155;
         font-size: 1.1rem;
         margin: 1.5rem 0 0.75rem;
+    }
+
+    .not-boxed {
+        padding: 0 10px;
     }
 
     .control-group {

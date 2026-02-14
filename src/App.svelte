@@ -173,11 +173,13 @@
 
 <main>
     <div class="centered-column">
-        <h1>Séries de Fourier</h1>
-        <p class="subtitle">
-            Dessinez une fonction et visualisez son approximation par série de
-            Fourier
-        </p>
+        <div class="intro">
+            <h1>Séries de Fourier</h1>
+            <p class="subtitle">
+                Dessinez une fonction et visualisez son approximation par série
+                de Fourier
+            </p>
+        </div>
 
         <ControlsPanel
             bind:a
@@ -253,13 +255,23 @@
     main {
         max-width: 700px;
         margin: 0 auto;
-        padding: 2rem;
+        padding: 0;
+    }
+
+    .intro {
+        padding: 10px;
     }
 
     .centered-column {
         max-width: 700px;
         margin: 0 auto;
         width: 100%;
+    }
+
+    @media (min-width: 480px) {
+        main {
+            padding: 10px;
+        }
     }
 
     @media (min-width: 1024px) {
