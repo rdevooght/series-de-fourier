@@ -1,95 +1,25 @@
 <script>
-    import DrawingCanvas from "./lib/DrawingCanvas.svelte";
-    import FunctionPlot from "./lib/FunctionPlot.svelte";
-    import BarChart from "./lib/BarChart.svelte";
     import Footer from "./lib/Footer.svelte";
+    import ControlsPanel from "./lib/ControlsPanel.svelte";
+    import DrawingSection from "./lib/DrawingSection.svelte";
+    import ApproximationSection from "./lib/ApproximationSection.svelte";
+    import TermsSection from "./lib/TermsSection.svelte";
     import {
         computeFourierCoefs,
         fourierApprox,
         sampleFunction,
-        getSystem,
     } from "./lib/fourier.js";
     import { togglePlay, updateSound, stopSound } from "./lib/sound.js";
-
-    // ========================================================================
-    // Systems Configuration
-    // ========================================================================
-
-    const SYSTEMS_CONFIG = {
-        standard: {
-            id: "standard",
-            label: "Standard (½, sin, cos)",
-            families: [
-                {
-                    id: "cos",
-                    title: "Termes cosinus",
-                    plotTitle: "aₖ · cos(2kπx/(b-a))",
-                    coefPrefix: "a",
-                },
-                {
-                    id: "sin",
-                    title: "Termes sinus",
-                    plotTitle: "bₖ · sin(2kπx/(b-a))",
-                    coefPrefix: "b",
-                },
-            ],
-        },
-        cos: {
-            id: "cos",
-            label: "Cosinus",
-            families: [
-                {
-                    id: "cos",
-                    title: "Termes cosinus",
-                    plotTitle: "aₖ · cos(kπ(x-a)/(b-a))",
-                    coefPrefix: "a",
-                },
-            ],
-        },
-        sin: {
-            id: "sin",
-            label: "Sinus",
-            families: [
-                {
-                    id: "sin",
-                    title: "Termes sinus",
-                    plotTitle: "bₖ · sin(kπ(x-a)/(b-a))",
-                    coefPrefix: "b",
-                },
-            ],
-        },
-        chebyshev: {
-            id: "chebyshev",
-            label: "Tchebychev",
-            families: [
-                {
-                    id: "T",
-                    title: "Polynômes de Tchebychev Tₖ",
-                    plotTitle: "aₖ · Tₖ(x)",
-                    coefPrefix: "T",
-                },
-            ],
-        },
-        legendre: {
-            id: "legendre",
-            label: "Legendre",
-            families: [
-                {
-                    id: "P",
-                    title: "Polynômes de Legendre Pₖ",
-                    plotTitle: "aₖ · Pₖ(x)",
-                    coefPrefix: "P",
-                },
-            ],
-        },
-    };
-
-    // Order for display in UI
-    const SYSTEM_ORDER = Object.keys(SYSTEMS_CONFIG);
-
-    // ========================================================================
-    // Domain and general parameters
-    // ========================================================================
+    import {
+        SYSTEMS_CONFIG,
+        SYSTEM_ORDER,
+        SAMPLE_FUNCTIONS,
+    } from "./lib/systems.js";
+    import {
+        getActiveCoefs,
+        getTermsFunctions as computeTermsFunctions,
+        getFrequencyDomain as computeFrequencyDomain,
+    } from "./lib/fourierView.js";
 
     let a = $state(-Math.PI);
     let b = $state(Math.PI);
@@ -100,105 +30,22 @@
     let maxMaxK = $state(20);
     let basisType = $state("standard");
 
-    // Current system config derived reactively
     let currentSystemConfig = $derived(SYSTEMS_CONFIG[basisType]);
-
-    // ========================================================================
-    // Sample functions
-    // ========================================================================
-
-    const sampleFunctions = [
-        {
-            name: "sin(x)",
-            func: (x) => Math.sin(x),
-            domain: [-Math.PI, Math.PI],
-        },
-        {
-            name: "x²",
-            func: (x) => x ** 2,
-            domain: [-2, 2],
-        },
-        {
-            name: "e^x",
-            func: (x) => Math.exp(x),
-            domain: [-1, 1],
-        },
-        {
-            name: "step",
-            func: (x) => (x > 0 ? 1 : -1),
-            domain: [-1, 1],
-        },
-        {
-            name: "dents de scie",
-            func: (x) => x - Math.floor(x),
-            domain: [0, 1],
-        },
-    ];
-
-    function setFunction(func) {
-        if (func.domain) {
-            a = func.domain[0];
-            b = func.domain[1];
-        }
-        drawnPoints = sampleFunction(func.func, xDomain[0], xDomain[1], 1000);
-    }
-
-    // ========================================================================
-    // Drawn points and computed coefficients
-    // ========================================================================
 
     let drawnPoints = $state([]);
     let coefs = $derived.by(() => {
         if (drawnPoints && drawnPoints.length > 1) {
             return computeFourierCoefs(drawnPoints, a, b, maxK, basisType);
-        } else {
-            return null;
         }
+        return null;
     });
 
-    // Sound state
     let isPlaying = $state(false);
 
-    function handleTogglePlay() {
-        if (coefs) {
-            isPlaying = togglePlay(coefs, coefsActivity);
-        }
-    }
-
-    // Update sound when coefficients change if playing
-    $effect(() => {
-        if (isPlaying && coefs) {
-            updateSound(coefs, coefsActivity);
-        } else if (!coefs && isPlaying) {
-            stopSound();
-            isPlaying = false;
-        }
-    });
-
-    // Activity state: c0 and per-family coefficient toggle
-    // families is an array of boolean arrays, one per family
     let coefsActivity = $state({
         c0: true,
         families: [Array(maxMaxK).fill(true), Array(maxMaxK).fill(true)],
     });
-
-    // ========================================================================
-    // Approximation with active coefficients
-    // ========================================================================
-
-    function getActiveCoefs(coefs, coefsActivity) {
-        return {
-            type: coefs.type,
-            c0: coefsActivity.c0 ? coefs.c0 : 0,
-            families: coefs.families.map((fam, fi) => ({
-                id: fam.id,
-                coefs: fam.coefs.map((val, i) =>
-                    coefsActivity.families[fi]?.[i] ? val : 0,
-                ),
-            })),
-            domain: coefs.domain,
-        };
-    }
 
     let approxPoints = $derived(
         coefs
@@ -211,63 +58,61 @@
             : [],
     );
 
-    // ========================================================================
-    // Term plotting
-    // ========================================================================
+    $effect(() => {
+        if (isPlaying && coefs) {
+            updateSound(coefs, coefsActivity);
+        } else if (!coefs && isPlaying) {
+            stopSound();
+            isPlaying = false;
+        }
+    });
 
-    function getTermsFunctions(familyIndex, familyConfig) {
-        if (!coefs || !coefs.families[familyIndex]) return [];
-
-        const system = getSystem(basisType);
-        const famDef = system.families[familyIndex];
-        const famCoefs = coefs.families[familyIndex].coefs;
-        const famActivity = coefsActivity.families[familyIndex] || [];
-
-        return famCoefs.map((c, i) => {
-            const func = (x) => {
-                let term = famDef.evalTerm(i + 1, x, a, b);
-                if (term === null) {
-                    return null;
-                } else {
-                    return c * term;
-                }
-            };
-
-            return {
-                points: sampleFunction(func, xDomain[0], xDomain[1], 200),
-                color: `hsl(${(i * 360) / maxK}, 70%, 50%)`,
-                label: `${familyConfig.coefPrefix}${i + 1}`,
-                dashed: !famActivity[i],
-            };
-        });
+    function setFunction(sampleFunctionDef) {
+        if (sampleFunctionDef.domain) {
+            a = sampleFunctionDef.domain[0];
+            b = sampleFunctionDef.domain[1];
+        }
+        drawnPoints = sampleFunction(
+            sampleFunctionDef.func,
+            xDomain[0],
+            xDomain[1],
+            1000,
+        );
     }
-
-    // ========================================================================
-    // UI helpers
-    // ========================================================================
 
     function clearCanvas() {
         drawnPoints = [];
-        coefs = null;
     }
 
-    // Check if all or no coefficients of a family are active
+    function handleTogglePlay() {
+        if (coefs) {
+            isPlaying = togglePlay(coefs, coefsActivity);
+        }
+    }
+
     function allActive(familyIndex) {
-        const famActivity = coefsActivity.families[familyIndex];
-        if (!famActivity) return false;
-        return famActivity.slice(0, maxK).every((v) => v);
+        const familyActivity = coefsActivity.families[familyIndex];
+        if (!familyActivity) return false;
+        return familyActivity.slice(0, maxK).every((value) => value);
     }
 
     function allInactive(familyIndex) {
-        const famActivity = coefsActivity.families[familyIndex];
-        if (!famActivity) return true;
-        return famActivity.slice(0, maxK).every((v) => !v);
+        const familyActivity = coefsActivity.families[familyIndex];
+        if (!familyActivity) return true;
+        return familyActivity.slice(0, maxK).every((value) => !value);
     }
 
     function setAllFamilyCoefs(familyIndex, active) {
-        coefsActivity.families[familyIndex] = coefsActivity.families[
-            familyIndex
-        ].map((v, i) => (i < maxK ? active : v));
+        coefsActivity = {
+            ...coefsActivity,
+            families: coefsActivity.families.map((family, index) =>
+                index === familyIndex
+                    ? family.map((value, coefIndex) =>
+                          coefIndex < maxK ? active : value,
+                      )
+                    : family,
+            ),
+        };
     }
 
     function activateAllCoefs() {
@@ -279,20 +124,50 @@
             setAllFamilyCoefs(familyIndex, true);
         }
     }
-    /**
-     * Determines the yDomain to be passed to the frequency BarCharts
-     */
-    function getFrequencyDomain() {
-        // find min and max
-        let allCoefs = [];
-        for (let fi = 0; fi < currentSystemConfig.families.length; fi++) {
-            allCoefs.push(...coefs.families[fi].coefs);
-        }
-        const min = Math.min(...allCoefs);
-        const max = Math.max(...allCoefs);
 
-        const range = Math.ceil(Math.max(Math.abs(min), Math.abs(max)));
-        return [min < 0 ? -range : 0, max < 0 ? 0 : range];
+    function setBasisType(systemId) {
+        basisType = systemId;
+        activateAllCoefs();
+    }
+
+    function toggleC0(active) {
+        coefsActivity = {
+            ...coefsActivity,
+            c0: active,
+        };
+    }
+
+    function toggleFamilyCoef(familyIndex, coefIndex, active) {
+        coefsActivity = {
+            ...coefsActivity,
+            families: coefsActivity.families.map((family, index) => {
+                if (index !== familyIndex) return family;
+                return family.map((value, indexInFamily) =>
+                    indexInFamily === coefIndex ? active : value,
+                );
+            }),
+        };
+    }
+
+    function getTermsFunctions(familyIndex, familyConfig) {
+        return computeTermsFunctions({
+            coefs,
+            coefsActivity,
+            basisType,
+            a,
+            b,
+            xDomain,
+            maxK,
+            familyIndex,
+            familyConfig,
+        });
+    }
+
+    function getFrequencyDomain() {
+        return computeFrequencyDomain(
+            coefs,
+            currentSystemConfig.families.length,
+        );
     }
 </script>
 
@@ -304,187 +179,42 @@
             Fourier
         </p>
 
-        <section class="controls">
-            <div class="control-group">
-                <label>
-                    <span>Domaine: a = </span>
-                    <input
-                        type="number"
-                        bind:value={a}
-                        min="0"
-                        max={b - 1}
-                        step="0.5"
-                    />
-                </label>
-                <label>
-                    <span>b = </span>
-                    <input
-                        type="number"
-                        bind:value={b}
-                        min={a + 1}
-                        max="10"
-                        step="0.5"
-                    />
-                </label>
-            </div>
-            <div class="control-group">
-                <label>
-                    <span>Nombre de termes (k): </span>
-                    <input
-                        type="range"
-                        bind:value={maxK}
-                        min="1"
-                        max={maxMaxK}
-                        step="1"
-                    />
-                    <span class="value">{maxK}</span>
-                </label>
-            </div>
-            <div class="control-group basis-selector">
-                <span class="label">Base: </span>
-                <div class="radio-group">
-                    {#each SYSTEM_ORDER as systemId}
-                        <label class:selected={basisType === systemId}>
-                            <input
-                                type="radio"
-                                name="basis"
-                                value={systemId}
-                                bind:group={basisType}
-                                onclick={activateAllCoefs}
-                            />
-                            {SYSTEMS_CONFIG[systemId].label}
-                        </label>
-                    {/each}
-                </div>
-            </div>
-        </section>
+        <ControlsPanel
+            bind:a
+            bind:b
+            bind:maxK
+            {maxMaxK}
+            bind:basisType
+            systemOrder={SYSTEM_ORDER}
+            systemsConfig={SYSTEMS_CONFIG}
+            onSetBasis={setBasisType}
+        />
 
-        <section class="drawing-section">
-            <div class="control-group">
-                <div>
-                    <h2>Dessinez votre fonction</h2>
-                    <p>
-                        Tracez entre les lignes rouges (a = {a.toFixed(2)} et b =
-                        {b.toFixed(2)})
-                    </p>
-                </div>
-                {#if drawnPoints.length > 1}
-                    <button onclick={clearCanvas}>Effacer</button>
-                {/if}
-            </div>
-
-            <div id="function-picker">
-                <p>Ou choisissez parmi les fonctions suivantes :</p>
-                <ul>
-                    {#each sampleFunctions as func}
-                        <li>
-                            <input
-                                type="button"
-                                name="function"
-                                value={func.name}
-                                onclick={() => setFunction(func)}
-                            />
-                        </li>
-                    {/each}
-                </ul>
-            </div>
-
-            <DrawingCanvas
-                height={350}
-                {xDomain}
-                {yDomain}
-                bind:points={drawnPoints}
-                bind:a
-                bind:b
-            />
-        </section>
+        <DrawingSection
+            bind:a
+            bind:b
+            bind:drawnPoints
+            {xDomain}
+            {yDomain}
+            sampleFunctions={SAMPLE_FUNCTIONS}
+            onClear={clearCanvas}
+            onSelectSample={setFunction}
+        />
 
         {#if coefs}
-            <section class="plots">
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between;"
-                >
-                    <h2>Approximation de Fourier</h2>
-                    {#if ["standard", "cos", "sin"].includes(basisType)}
-                        <button
-                            class="icon-btn"
-                            onclick={handleTogglePlay}
-                            aria-label={isPlaying
-                                ? "Arrêter le son"
-                                : "Jouer le son"}
-                            title={isPlaying
-                                ? "Arrêter le son"
-                                : "Jouer le son"}
-                        >
-                            {#if isPlaying}
-                                <!-- Stop Icon -->
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><rect
-                                        x="4"
-                                        y="4"
-                                        width="16"
-                                        height="16"
-                                        rx="2"
-                                        ry="2"
-                                    ></rect></svg
-                                >
-                            {:else}
-                                <!-- Play Icon -->
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><polygon
-                                        points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-                                    ></polygon><path
-                                        d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
-                                    ></path></svg
-                                >
-                            {/if}
-                        </button>
-                    {/if}
-                </div>
-                <FunctionPlot
-                    height={350}
-                    {xDomain}
-                    {yDomain}
-                    lines={[
-                        { points: approxPoints, color: "#2563eb", width: 2 },
-                    ]}
-                    title=""
-                    vertical_lines={[a, b]}
-                />
-
-                <div class="coef-constant">
-                    <span class="title">Terme constant:</span>
-                    <label
-                        style="display: inline"
-                        class:active={coefsActivity.c0}
-                    >
-                        <input
-                            type="checkbox"
-                            bind:checked={coefsActivity.c0}
-                        />
-                        <span class="coef-name">c₀</span>
-                        <span class="coef-value">{coefs.c0.toFixed(3)}</span>
-                    </label>
-                </div>
-            </section>
+            <ApproximationSection
+                {basisType}
+                {isPlaying}
+                onTogglePlay={handleTogglePlay}
+                {approxPoints}
+                {xDomain}
+                {yDomain}
+                {a}
+                {b}
+                {coefs}
+                {coefsActivity}
+                onToggleC0={toggleC0}
+            />
         {:else}
             <p class="hint">
                 👆 Dessinez une courbe ci-dessus pour voir les résultats
@@ -493,80 +223,20 @@
     </div>
 
     {#if coefs}
-        <div
-            class={currentSystemConfig.families.length > 1
-                ? "terms-container two-cols"
-                : "terms-container single-col"}
-        >
-            {#each currentSystemConfig.families as familyConfig, fi}
-                <div class="term-group">
-                    <h2>{familyConfig.title}</h2>
-                    <FunctionPlot
-                        height={220}
-                        {xDomain}
-                        yDomain={[-2, 2]}
-                        lines={getTermsFunctions(fi, familyConfig)}
-                        title={familyConfig.plotTitle}
-                        vertical_lines={[a, b]}
-                    />
-
-                    <div style="margin-top: 1rem;">
-                        <BarChart
-                            data={coefs.families[fi].coefs}
-                            labels={coefs.families[fi].coefs.map(
-                                (_, i) => i + 1,
-                            )}
-                            height={150}
-                            yDomain={getFrequencyDomain()}
-                            active={coefsActivity.families[fi]}
-                        />
-                    </div>
-
-                    <div class="results">
-                        <div class="coefs-display">
-                            {#each coefs.families[fi].coefs as c, i}
-                                <label
-                                    class={[
-                                        "coef",
-                                        coefsActivity.families[fi]?.[i] &&
-                                            "active",
-                                    ]}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        bind:checked={
-                                            coefsActivity.families[fi][i]
-                                        }
-                                    />
-                                    <span class="coef-name"
-                                        >{familyConfig.coefPrefix}{i + 1}</span
-                                    >
-                                    <span class="coef-value"
-                                        >{c.toFixed(3)}</span
-                                    >
-                                </label>
-                            {/each}
-                        </div>
-                        <div class="bulk-actions">
-                            <button
-                                class="text-btn"
-                                disabled={allActive(fi)}
-                                onclick={() => setAllFamilyCoefs(fi, true)}
-                            >
-                                Tout activer
-                            </button>
-                            <button
-                                class="text-btn"
-                                disabled={allInactive(fi)}
-                                onclick={() => setAllFamilyCoefs(fi, false)}
-                            >
-                                Tout désactiver
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            {/each}
-        </div>
+        <TermsSection
+            {currentSystemConfig}
+            {xDomain}
+            {a}
+            {b}
+            {coefs}
+            {coefsActivity}
+            {getTermsFunctions}
+            {getFrequencyDomain}
+            {allActive}
+            {allInactive}
+            onSetAllFamilyCoefs={setAllFamilyCoefs}
+            onToggleFamilyCoef={toggleFamilyCoef}
+        />
     {/if}
 </main>
 
@@ -586,64 +256,21 @@
         padding: 2rem;
     }
 
-    /* Column for top elements */
     .centered-column {
         max-width: 700px;
         margin: 0 auto;
         width: 100%;
     }
 
-    /* Layout for terms container */
-    .terms-container {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-        margin-top: 2rem;
-        width: 100%;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    /* Default single column (mobile or desktop single family) */
-    .terms-container.single-col {
-        max-width: 700px;
-    }
-
-    /* Large screen rules */
     @media (min-width: 1024px) {
         main {
-            /* Allow main to grow to accommodate 2 cols */
             max-width: 1200px;
         }
-
-        .terms-container.two-cols {
-            display: flex;
-            flex-direction: row;
-            gap: 2rem;
-            align-items: start;
-            max-width: 1200px; /* Use full available width */
-        }
-
-        /* Single col stays centered and same width as top part */
-        .terms-container.single-col {
-            max-width: 700px;
-        }
-    }
-
-    .term-group {
-        flex: 1 1 0;
-        min-width: 0;
     }
 
     h1 {
         color: #1e293b;
         margin-bottom: 0.25rem;
-    }
-
-    h2 {
-        color: #334155;
-        font-size: 1.1rem;
-        margin: 1.5rem 0 0.75rem;
     }
 
     .subtitle {
@@ -652,250 +279,10 @@
         margin-bottom: 1.5rem;
     }
 
-    .controls {
-        background: white;
-        padding: 1rem 1.25rem;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        margin-bottom: 1.5rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .control-group {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .basis-selector {
-        width: 100%;
-        margin-top: 0.5rem;
-    }
-
-    .radio-group {
-        display: flex;
-        background: #f1f5f9;
-        padding: 4px;
-        border-radius: 8px;
-        gap: 4px;
-        flex-wrap: wrap;
-    }
-
-    .radio-group label {
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        color: #64748b;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        user-select: none;
-    }
-
-    .radio-group label:hover {
-        background: #e2e8f0;
-        color: #334155;
-    }
-
-    .radio-group label.selected {
-        background: white;
-        color: #2563eb;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        font-weight: 500;
-    }
-
-    .radio-group input {
-        display: none;
-    }
-
-    .label {
-        color: #475569;
-        font-size: 0.9rem;
-    }
-
-    label {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        color: #475569;
-        font-size: 0.9rem;
-    }
-
-    input[type="number"] {
-        width: 60px;
-        padding: 0.35rem 0.5rem;
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        font-size: 0.9rem;
-    }
-
-    input[type="range"] {
-        width: 120px;
-    }
-
-    .value {
-        font-weight: 600;
-        color: #2563eb;
-        min-width: 1.5rem;
-    }
-
-    button {
-        background: #ef4444;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: auto;
-    }
-
-    button:hover {
-        background: #dc2626;
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .icon-btn {
-        padding: 0.5rem;
-        background: transparent;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: 0;
-    }
-
-    .icon-btn:hover {
-        background: #f1f5f9;
-        color: #2563eb;
-    }
-
-    .bulk-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .text-btn {
-        background: none;
-        color: #2563eb;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-        margin: 0;
-        border: 1px solid #bfdbfe;
-        background-color: #eff6ff;
-    }
-
-    .text-btn:hover {
-        background-color: #dbeafe;
-    }
-
-    .text-btn:disabled {
-        color: #94a3b8;
-        border-color: #e2e8f0;
-        background-color: #f8fafc;
-    }
-
-    .drawing-section p {
-        color: #64748b;
-        font-size: 0.9rem;
-        margin: 0.5rem 0;
-    }
-
-    .results {
-        background: white;
-        padding: 1rem 1.25rem;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-        margin: 1.5rem 0;
-    }
-
-    .coefs-display {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .coef {
-        background: #f1f5f9;
-        padding: 0.35rem 0.75rem;
-        border-radius: 6px;
-        display: flex;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-    }
-
-    .coef.active {
-        background: #e5e7eb;
-    }
-
-    .coef-name {
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .coef-value {
-        color: #1e293b;
-        font-family: "SF Mono", Monaco, monospace;
-    }
-
-    .plots {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
     .hint {
         text-align: center;
         color: #94a3b8;
         font-size: 1.1rem;
         margin-top: 3rem;
-    }
-
-    .coef-constant {
-        margin: 1.5rem 0 0.75rem;
-    }
-    .coef-constant .title {
-        color: #334155;
-        font-size: 1.1rem;
-    }
-
-    #function-picker {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        margin-bottom: 15px;
-    }
-
-    #function-picker ul {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    #function-picker ul input[type="button"] {
-        cursor: pointer;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #e5e7eb;
-        background-color: #f1f5f9;
-    }
-
-    #function-picker ul input[type="button"]:hover {
-        background-color: #e5e7eb;
     }
 </style>
