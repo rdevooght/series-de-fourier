@@ -1,4 +1,5 @@
 <script>
+    import { Parser } from "expr-eval-fork";
     import Footer from "./lib/Footer.svelte";
     import ControlsPanel from "./lib/ControlsPanel.svelte";
     import DrawingSection from "./lib/DrawingSection.svelte";
@@ -31,6 +32,17 @@
     let basisType = $state("standard");
 
     let currentSystemConfig = $derived(SYSTEMS_CONFIG[basisType]);
+    let availableSampleFunctions = $state([...SAMPLE_FUNCTIONS]);
+
+    const expressionParser = new Parser({
+        operators: {
+            comparison: false,
+            logical: false,
+            assignment: false,
+            concatenate: false,
+            in: false,
+        },
+    });
 
     let drawnPoints = $state([]);
     let coefs = $derived.by(() => {
@@ -78,6 +90,50 @@
             xDomain[1],
             1000,
         );
+    }
+
+    function addCustomFunction(expression) {
+        const trimmedExpression = expression?.trim();
+        if (!trimmedExpression) {
+            return { ok: false, error: "Expression vide." };
+        }
+
+        const existingFunction = availableSampleFunctions.find(
+            (fn) => fn.name === trimmedExpression,
+        );
+        if (existingFunction) {
+            setFunction(existingFunction);
+            return { ok: true };
+        }
+
+        try {
+            const parsedExpression = expressionParser.parse(trimmedExpression);
+            const usedVariables = parsedExpression.variables();
+
+            if (usedVariables.some((variableName) => variableName !== "x")) {
+                return {
+                    ok: false,
+                    error: "Utilisez uniquement la variable x.",
+                };
+            }
+
+            const customSampleFunction = {
+                name: trimmedExpression,
+                func: (x) => parsedExpression.evaluate({ x }),
+            };
+
+            availableSampleFunctions = [
+                ...availableSampleFunctions,
+                customSampleFunction,
+            ];
+            setFunction(customSampleFunction);
+            return { ok: true };
+        } catch (_error) {
+            return {
+                ok: false,
+                error: "Expression invalide. Exemple: abs(x+2)",
+            };
+        }
     }
 
     function clearCanvas() {
@@ -198,9 +254,10 @@
             bind:drawnPoints
             {xDomain}
             {yDomain}
-            sampleFunctions={SAMPLE_FUNCTIONS}
+            sampleFunctions={availableSampleFunctions}
             onClear={clearCanvas}
             onSelectSample={setFunction}
+            onAddSampleExpression={addCustomFunction}
         />
 
         {#if coefs}

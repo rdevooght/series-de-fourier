@@ -10,7 +10,20 @@
         sampleFunctions,
         onClear,
         onSelectSample,
+        onAddSampleExpression,
     } = $props();
+
+    function addCustomExpression() {
+        const expression = window.prompt(
+            "Entrez une expression en x (ex: abs(x+2))",
+        );
+        if (!expression) return;
+
+        const result = onAddSampleExpression(expression);
+        if (result && !result.ok) {
+            window.alert(result.error);
+        }
+    }
 </script>
 
 <section class="drawing-section">
@@ -41,6 +54,16 @@
                     />
                 </li>
             {/each}
+            <li>
+                <input
+                    type="button"
+                    name="add-function"
+                    value="+"
+                    aria-label="Ajouter une fonction personnalisée"
+                    title="Ajouter une fonction personnalisée"
+                    onclick={addCustomExpression}
+                />
+            </li>
         </ul>
     </div>
 
@@ -121,7 +144,16 @@
         background-color: #f1f5f9;
     }
 
+    #function-picker ul input[type="button"][name="add-function"] {
+        border: 1px solid #2563eb;
+        background-color: #ecf2fd;
+    }
+
     #function-picker ul input[type="button"]:hover {
         background-color: #e5e7eb;
+    }
+
+    #function-picker ul input[type="button"][name="add-function"]:hover {
+        background-color: #c8d9f9;
     }
 </style>
