@@ -93,7 +93,7 @@
     }
 
     function addCustomFunction(expression) {
-        const trimmedExpression = expression?.trim();
+        const trimmedExpression = expression?.trim().toLowerCase();
         if (!trimmedExpression) {
             return { ok: false, error: "Expression vide." };
         }
